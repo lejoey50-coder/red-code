@@ -1,0 +1,1 @@
+{ "name": "red-code-mods", "description": "Red Code: a pixel-art city at night as your Claude Code interface.", "owner": { "name": "Red Code" }, "plugins": [ { "name": "red-code", "source": "./red-code", "description": "A pixel-art building in a city at night, as your interface." } ] }
