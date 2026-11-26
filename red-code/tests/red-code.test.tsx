@@ -560,18 +560,80 @@ describe('the playable room', () => {
     expect(svg.includes('<path fill="#4FE0F2" opacity=".11"')).toBe(true)
     expect(svg.includes('<path fill="#FF3355" opacity=".15"')).toBe(true)
     // the city is drawn inside the tower's group, the sea in its own group placed by the tower's bands
-    expect(svg.includes('<g class="tw"><defs><pattern id="fr"')).toBe(true)
+    expect(svg.includes('<g class="tw"><defs><linearGradient id="tgq">')).toBe(true)
     expect(svg.includes('<path id="mL"')).toBe(true)
-    // black finned towers, bands of white offices with someone walking, light running up the corners
-    expect(svg.includes('fill="url(#of)"')).toBe(true)
+    // smooth black towers with no windows: lit slots, cores of light in cyan and crimson, pulses running up them
+    for (const gone of ['url(#of)', 'url(#fl)', 'url(#fr)', 'animation:pw']) expect(svg.includes(gone)).toBe(false)
+    expect(svg.includes('<use href="#mL" fill="#060B10"/>')).toBe(true)
+    for (const key of ['m', 'n']) {
+      expect(svg.includes(`<use href="#${key}B" stroke="#E8FAFF"/>`)).toBe(true)
+    }
+    // cores are shapes cut to the slope of their wall, in cyan and in crimson; no stroked halo round them
+    expect(svg.split(`<path fill="#075B80" d="M`).length >= 3).toBe(true)
+    // each in a trench with a dark lip, with soft light on the black beside it, as the tower's are
+    expect(svg.split('<path fill="url(#tgx)" d="M').length > 12).toBe(true)
+    expect(svg.includes('<path fill="url(#tgq)" d="M')).toBe(true)
+    expect(svg.split('<path fill="#FFD9DF" d="M').length).toBe(3)
+    expect(svg.includes('stroke-width="23"')).toBe(false)
+    // and what is cut into the black: grooves, ticks, landing marks
+    {
+      expect(svg.split('<path stroke="#0E7FA0" stroke-dasharray="2 4" d="M').length).toBe(3)
+    }
     expect(svg.includes('animation:up ')).toBe(true)
-    expect(svg).toMatch(/animation:pw[mn]\d+ /)
     expect(svg.includes('<g class="cs">')).toBe(true)
     expect(svg).toMatch(/\.cs\{transform:translate\(\d+px,\d+px\) scale\(0\.\d+\)/)
     expect(svg).toMatch(/<g style="opacity:0;animation:zap /)
     const still = drawRoom(fresh(), T0 + 120000, { isStill: true })
     for (const id of ['va', 'vam', 'vb', 'vbm']) expect(still.includes(`<use href="#s${id}"`)).toBe(true)
     expect(still.includes('animation:zap')).toBe(false)
+  })
+
+  test('the tower is black with light let into it: no windows, cores in trenches, crimson only while he works', () => {
+    const idle = drawRoom(fresh(), T0 + 120000, { isStill: false })
+    // no window grid and no lit windows: the old patterns are gone
+    for (const id of ['wl', 'wr', 'la', 'lb', 'ra', 'rb']) expect(idle.includes(`id="${id}"`)).toBe(false)
+    expect(idle.includes('<pattern id="w')).toBe(false)
+    // both faces in the wall's own shear, the white core of the spine, and the light it leaves on the black
+    expect(idle.includes('<g transform="matrix(1 .5 0 1 16 139)"><path fill="#060B10"')).toBe(true)
+    expect(idle.includes('<g transform="matrix(-1 .5 0 1 240 139)"><path fill="#0A1219"')).toBe(true)
+    expect(idle.includes('<path fill="#E8FAFF" d="M126 193h4')).toBe(true)
+    for (const id of ['tgx', 'tgh', 'tgy', 'thz']) expect(idle.includes(`url(#${id})`)).toBe(true)
+    // pulses in the cores, a packet on the band, circuits coming on in turn; at rest it is all cyan
+    for (const key of ['te', 'ts', 'tp', 'tq']) expect(idle.includes(`animation:${key} `)).toBe(true)
+    expect(idle.includes('<g stroke="#00CFFF">')).toBe(true)
+    expect(idle.includes('url(#tgr)')).toBe(false)
+    expect(idle.includes('<path fill="#FF1744" d="M124')).toBe(false)
+    expect(idle.includes('animation:tx ')).toBe(false)
+
+    // he starts: light runs down the three cores, and the spine and circuits turn crimson
+    const working = W.launched(fresh(), T0)
+    const start = drawRoom(working, T0 + 400, { isStill: false })
+    expect(start.split('animation:tx 2.6s linear').length).toBe(4)
+    expect(start.includes('<g style="animation:tc 1.4s steps(7) -0.4s both"><path fill="#FF1744"')).toBe(true)
+    expect(start.includes('<g stroke="#FF1744" style="animation:ti 1.4s steps(7) -0.4s both">')).toBe(true)
+    // the main cores of the faces stay cyan
+    expect(start.includes('<path fill="#00CFFF" d="M32 ')).toBe(true)
+    // later the crimson is settled and the cascade is gone
+    const busy = drawRoom(working, T0 + 30000, { isStill: false })
+    expect(busy.includes('url(#tgr)')).toBe(true)
+    expect(busy.includes('<g stroke="#FF1744">')).toBe(true)
+    expect(busy.includes('animation:tc ')).toBe(false)
+    expect(busy.includes('animation:tx ')).toBe(false)
+
+    // the turn ends: crimson fades out, and then it is cyan again
+    const rested = W.turnEnded(W.turnStarted(working, 't'), 't', T0 + 40000)
+    const fading = drawRoom(rested, T0 + 40700, { isStill: false })
+    expect(fading.includes('<g style="opacity:0;animation:tk 1.4s steps(7) -0.7s both">')).toBe(true)
+    expect(fading.includes('<g stroke="#00CFFF" style="animation:to 1.4s steps(7) -0.7s both">')).toBe(true)
+    const quiet = drawRoom(rested, T0 + 60000, { isStill: false })
+    expect(quiet.includes('<path fill="#FF1744" d="M124')).toBe(false)
+    expect(quiet.includes('url(#tgr)')).toBe(false)
+
+    // with motion off the same tower stands lit, and nothing in it runs
+    const still = drawRoom(working, T0 + 400, { isStill: true })
+    expect(still.includes('<path fill="#FF1744" d="M124 193h8')).toBe(true)
+    expect(still.includes('@keyframes t')).toBe(false)
+    for (const svg of [idle, start, busy, fading, still]) expect(svg.length <= 130000).toBe(true)
   })
 
   test('a Stop powers the hologram down, and it comes back', async ($, on) => {

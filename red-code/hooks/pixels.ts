@@ -82,7 +82,8 @@ export const HIDDEN = '*'
 
 /**
  * One path for each colour, the commonest first, each a list of 1px-high runs. A run passes under any
- * colour drawn after it, so it needs no break there. `ink` maps a cell's key to a colour.
+ * colour drawn after it, so it needs no break there. A column one pixel wide is one stroke down.
+ * `ink` maps a cell's key to a colour.
  */
 export function paths(g: Grid, ink: (key: string) => string | undefined = k => k): string {
   const cells = g.at.map(key => (key === '' || key === HIDDEN ? key : (ink(key) ?? '')))
@@ -92,14 +93,41 @@ export function paths(g: Grid, ink: (key: string) => string | undefined = k => k
   const rank = new Map(order.map((c, k) => [c, k]))
   const at = cells.map(c => (c === HIDDEN ? Infinity : c === '' ? -1 : (rank.get(c) ?? -1)))
   let out = ''
+  /** A step, written short: no leading zero. */
+  const num = (v: number) => String(v).replace(/^(-?)0\./, '$1.')
+  const used = new Uint8Array(cells.length)
   order.forEach((c, r) => {
     let d = ''
     let px = 0
     let py = 0
+    const go = (x: number, y: number) => {
+      d += d === '' ? `M${num(x)} ${num(y)}` : `m${num(x - px)}${y - py < 0 ? '' : ' '}${num(y - py)}`
+    }
+    // A column one pixel wide and three or more tall is one stroke down, not a run for every row.
+    // So is each column of a block two wide and four or more tall: once the first is taken, the second stands alone.
+    const mine = (x: number, y: number) => x >= 0 && x < g.w && at[y * g.w + x] === r && used[y * g.w + x] === 0
+    const width = (x: number, y: number) => (mine(x, y) ? 1 + (mine(x - 1, y) ? 1 + (mine(x - 2, y) ? 1 : 0) : 0) + (mine(x + 1, y) ? 1 + (mine(x + 2, y) ? 1 : 0) : 0) : 9)
+    used.fill(0)
+    for (let x = 0; x < g.w; x++) {
+      for (let y = 0; y < g.h; y++) {
+        const wide = width(x, y)
+        if (wide > 2) continue
+        let n = 1
+        while (y + n < g.h && width(x, y + n) === wide) n += 1
+        if (n > wide + 1) {
+          go(x + 0.5, y)
+          d += `v${n}`
+          px = x + 0.5
+          py = y + n
+          for (let k = 0; k < n; k++) used[(y + k) * g.w + x] = 1
+        }
+        y += n
+      }
+    }
     for (let y = 0; y < g.h; y++) {
       let x = 0
       while (x < g.w) {
-        if (at[y * g.w + x] !== r) {
+        if (at[y * g.w + x] !== r || used[y * g.w + x] === 1) {
           x += 1
           continue
         }
@@ -107,12 +135,12 @@ export function paths(g: Grid, ink: (key: string) => string | undefined = k => k
         for (let k = x + 1; k < g.w; k++) {
           const v = at[y * g.w + k] ?? -1
           if (v < r) break
-          if (v === r) end = k + 1
+          if (v === r && used[y * g.w + k] === 0) end = k + 1
         }
-        d += d === '' ? `M${x} ${y + 0.5}` : `m${x - px}${y - py < 0 ? '' : ' '}${y - py}`
+        go(x, y + 0.5)
         d += `h${end - x}`
         px = end
-        py = y
+        py = y + 0.5
         x = end
       }
     }

@@ -49,6 +49,9 @@ export type World = {
   holoDown?: number
   /** When the person last started typing. */
   typingAt?: number
+  /** When he last started work, and when he last finished: the tower's light turns on these. */
+  workAt?: number
+  restAt?: number
 }
 
 /** 

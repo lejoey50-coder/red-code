@@ -254,14 +254,15 @@ const FRONT: Sheet[] = [
 ]
 
 /**
- * A lit corner going under: its light hangs round it in the mist and pools on the fog's top.
+ * A lit corner going under: its light pools on the fog's top.
  * [x, red or cyan]. `y` is where the fog's top stands there.
  */
 export function glow(spots: ReadonlyArray<readonly [x: number, isRed: boolean]>, y: number): string {
   let cyan = ''
   let red = ''
   for (const [x, isRed] of spots) {
-    const d = `M${x - 6} ${y - 52}h13v140h-13zM${x - 20} ${y - 16}h41v80h-41zM${x - 36} ${y + 8}l36 -18l36 18l-36 18zm-28 0l64 -32l64 32l-64 32z`
+    // two pools on the fog's top, at the fog's own angle: no upright box round the light itself
+    const d = `M${x - 36} ${y + 8}l36 -18l36 18l-36 18zm-28 0l64 -32l64 32l-64 32z`
     if (isRed) red += d
     else cyan += d
   }
@@ -301,13 +302,13 @@ function lightning(now: number): string {
  * `isCalm`, for a busy drawing, leaves out the lightning; `isLean` also the tower's own current and the
  * light under it; `isStill` keeps everything but the lightning, at rest.
  */
-export function fogSea(now: number, o: { isLean?: boolean; isCalm?: boolean; isStill?: boolean } = {}): string {
+export function fogSea(now: number, o: { isLean?: boolean; isCalm?: boolean; isStill?: boolean; lit?: ReadonlyArray<readonly [number, boolean]> } = {}): string {
   const plain = o.isCalm === true || o.isLean === true || o.isStill === true
   const [first, ...rest] = FRONT.map(s => sheet(s, now))
   return (
     `<g class="cs">${first ?? ''}` +
-    // the tower's own corner going under
-    (o.isLean ? '' : glow([[128, false]], 14)) +
+    // the tower's own light going under: its corner, and the cores in its faces
+    (o.isLean ? '' : glow(o.lit ?? [[128, false]], 14)) +
     (plain ? '' : lightning(now)) +
     (o.isLean ? '' : flow(3, now)) +
     `${rest.join('')}</g>`

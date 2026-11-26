@@ -6,15 +6,15 @@
 import { VIEW, place, tileAt } from './map'
 import * as building from './building'
 import { SCENE, city, column, road, storm } from './city'
-import { CITY_KEYS, megacity, walkerKeys } from './megacity'
+import { CITY_KEYS, megacity } from './megacity'
 import { grid, paths, rect } from './pixels'
 import type { Grid } from './pixels'
 import * as room from './room'
 import { INK, art, cycle, frames, markOf, parts, words } from './sprites'
-import { lightsOf } from './world'
+import { lightsOf, powerOf } from './world'
 import { HOLO_DOWN, hotspots, hoverCss } from './play'
 import { FOG_KEYS, SEA_CSS, fogDefs, fogSea } from './fog'
-import { PLACE_CSS, TOWER_KEYS, lift as liftShaft, walls, wisps } from './tower'
+import { PLACE_CSS, TOWER_KEYS, fogLights, lift as liftShaft, walls, wisps } from './tower'
 import type { Actor, Clip, Face, Pose, World } from '../types'
 
 const cache = new Map<string, string>()
@@ -257,7 +257,7 @@ export function drawRoom(w: World, now: number, o: { isStill: boolean }): string
   const full = draw(w, now, o)
   if (full.length <= MOST) return full
   // A busy moment: the fog keeps drifting but drops what comes and goes (the city's currents, lightning),
-  // and the city its passing traffic and walkers. Every building stays as it is, so nothing seems to change.
+  // and the city its passing traffic. Every building stays as it is, so nothing seems to change.
   const quiet = draw(w, now, { ...o, isCalmSea: true })
   if (quiet.length <= MOST) return quiet
   // Then the last current and the neon's light in the fog go too, before anyone stops. Every sheet of fog stays.
@@ -271,7 +271,7 @@ export function drawRoom(w: World, now: number, o: { isStill: boolean }): string
   if (calm.length <= MOST) return calm
   const still = draw({ ...w, actors: w.actors.map(a => ({ ...a, clips: a.clips.slice(-1) })) }, now, { ...o, isStill: true })
   if (still.length <= MOST) return still
-  // Still too much: the tower's ornaments go (wisps, lift, lit windows, the far ring and its fog), the room stays whole.
+  // Still too much: the tower's ornaments go (wisps, lift, the light round its channels, the far ring and its fog), the room stays whole.
   return draw({ ...w, actors: w.actors.map(a => ({ ...a, clips: a.clips.slice(-1) })) }, now, { ...o, isStill: true, isLean: true })
 }
 
@@ -280,6 +280,7 @@ function draw(w: World, now: number, o: { isStill: boolean; isLean?: boolean; is
   const pen: Pen = { defs: new Map(), css: [], now, isStill: o.isStill, n: 0 }
   const lit = lightsOf(w)
   const red = w.actors.find(a => a.kind === 'red')
+  const power = powerOf(w)
 
   const layers: Layer[] = []
   for (const a of w.actors) layers.push(...actorLayers(pen, a, w))
@@ -325,7 +326,7 @@ function draw(w: World, now: number, o: { isStill: boolean; isLean?: boolean; is
   const beamUp = lit.beacon ? `<g opacity=".85"><g style="animation:blink 2.4s steps(3) infinite"><path fill="#1C6E7E" d="M${BEAM - 4} -800h9V${VIEW.y}h-9z"/><path fill="#B8F6FF" d="M${BEAM - 1} -800h3V${VIEW.y}h-3z"/><path fill="#FFFFFF" d="M${BEAM} -800h1V${VIEW.y}h-1z"/><g transform="translate(0 ${VIEW.y})">${once('beam', room.beam)}</g></g></g>` : ''
   const house =
     (lean ? '' : wisps(now)) +
-    walls(now, lean) +
+    walls(now, lean, power) +
     (lean ? '' : liftShaft(now)) +
     (lit.beacon ? beamUp : '') +
     once('base', base) +
@@ -352,7 +353,7 @@ function draw(w: World, now: number, o: { isStill: boolean; isLean?: boolean; is
     city() +
     `<g style="animation:rip 4.9s steps(2) infinite">${column(lit.beacon)}</g>` +
     `<g class="tw">${megacity(now, lean ? 'bare' : o.isLeanSea === true ? 'thin' : o.isCalmSea === true ? 'quiet' : 'full')}${house}</g>` +
-    fogSea(now, { isLean: lean || o.isLeanSea === true, isCalm: o.isCalmSea === true, isStill: o.isStill }) +
+    fogSea(now, { isLean: lean || o.isLeanSea === true, isCalm: o.isCalmSea === true, isStill: o.isStill, lit: fogLights(power) }) +
     (lean || o.isCalmSea === true || o.isStill ? '' : storm(now)) +
     // Smoke over the middle, where the words are; over everything on a tall screen.
     `<rect x="170" width="300" height="${SCENE.h}" fill="url(#smoke)"/><rect class="veil" width="${SCENE.w}" height="${SCENE.h}" fill="#05090E" opacity="0"/>`
@@ -360,7 +361,7 @@ function draw(w: World, now: number, o: { isStill: boolean; isLean?: boolean; is
   const still = o.isStill ? '*{animation:none!important}' : ''
   return (
     `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${SCENE.w} ${SCENE.h}" preserveAspectRatio="xMaxYMax slice" shape-rendering="crispEdges" fill="none" stroke-width="1">` +
-    `<style>${o.isStill ? stillCss() : CSS + TOWER_KEYS + CITY_KEYS + FOG_KEYS + walkerKeys()}${pen.css.join('')}${still}</style><defs><clipPath id="rf"><rect x="-10" y="1" width="20" height="9"/></clipPath>` +
+    `<style>${o.isStill ? stillCss() : CSS + TOWER_KEYS + CITY_KEYS + FOG_KEYS}${pen.css.join('')}${still}</style><defs><clipPath id="rf"><rect x="-10" y="1" width="20" height="9"/></clipPath>` +
     `<linearGradient id="rf2" x1="1" y1="0" x2="0" y2="1"><stop offset=".45" stop-color="#fff"/><stop offset=".8" stop-color="#fff" stop-opacity="0"/></linearGradient><mask id="rd" maskUnits="userSpaceOnUse" x="-200" y="0" width="460" height="400"><rect x="-200" width="460" height="400" fill="url(#rf2)"/></mask>` +
     `<linearGradient id="smoke"><stop offset="0" stop-color="#05090E" stop-opacity="0"/><stop offset=".22" stop-color="#05090E" stop-opacity=".6"/><stop offset=".74" stop-color="#05090E" stop-opacity=".6"/><stop offset="1" stop-color="#05090E" stop-opacity="0"/></linearGradient>` +
     `${fogDefs(lean || o.isLeanSea === true ? 0 : o.isCalmSea === true ? 1 : 4)}${[...pen.defs.values()].join('')}</defs>${all}</svg>`

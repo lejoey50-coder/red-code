@@ -154,8 +154,14 @@ export function rebadged(w: World, badge: number): World {
 }
 
 /** An accepted prompt: catch the disc, snap it on, take the lower track in. */
+/** Is Red Code at work: a turn running or waking, a call open, or a reply being written. */
+export const isWorking = (w: World): boolean => w.turn !== null || w.isWaking || w.isReplying || w.ops.length > 0
+
+/** The tower's power: whether he is at work, and when that last changed (0 when it was not seen to). */
+export const powerOf = (w: World): { isOn: boolean; at: number } => (isWorking(w) ? { isOn: true, at: w.workAt ?? 0 } : { isOn: false, at: w.restAt ?? 0 })
+
 export function launched(w: World, now: number): World {
-  const at: World = { ...w, isWaking: true, mark: null }
+  const at: World = { ...w, isWaking: true, mark: null, ...(isWorking(w) ? {} : { workAt: now }) }
   if ((w.userUntil ?? 0) > now) return swap(at, RED, a => ({ ...a, doing: 'Starting', doingAt: now }))
   return swap(at, RED, a => {
     const fromPier = a.station === 'pier'
@@ -179,7 +185,7 @@ export function replying(w: World, now: number): World {
 export function turnEnded(w: World, id: string, now: number, isCheered = true): World {
   if (w.turn !== null && w.turn !== id) return w
   // A call the turn left open did not finish where it could be seen: it is over, and it did not succeed.
-  const at: World = { ...w, turn: null, isReplying: false, isWaking: false, isUnknown: false, ops: w.ops.filter(o => o.actor !== RED), waits: [] }
+  const at: World = { ...w, turn: null, isReplying: false, isWaking: false, isUnknown: false, ops: w.ops.filter(o => o.actor !== RED), waits: [], restAt: now }
   if ((w.userUntil ?? 0) > now || !isCheered) return calm(at, now)
   // Claude finished: a short cheer where he stands, then off to rest.
   const red = at.actors.find(a => a.id === RED)

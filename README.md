@@ -1,12 +1,13 @@
 <p align="center">
-  <img src="red-code/art/header.png" alt="Red Code: a pixel-art tower with one lit room, where Red Code and two helpers work, beside black towers with white office bands standing in teal fog" width="100%">
+  <img src="red-code/art/header.png" alt="Red Code: a pixel-art tower with one lit room, where Red Code and two helpers work, above a black shaft cut with channels of cyan-white light, beside black towers lit the same way and standing in teal fog" width="100%">
 </p>
 
 <h1 align="center">Red Code</h1>
 
 <p align="center">
   <b>A pixel-art city at night as your Claude Code interface.</b><br>
-  A tall tower with its top floor cut away to show one room, where Red Code, a small crimson program, acts out what your session is doing.
+  A tall tower with its top floor cut away to show one room, where Red Code, a small crimson program, acts out what your session is doing.<br>
+  The towers are smooth black with light let into them: no windows, only channels of cyan-white light. The tower's spine turns crimson while Claude works.
 </p>
 
 <p align="center">

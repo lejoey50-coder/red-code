@@ -1,4 +1,4 @@
-// The building, cut away to show one room: the city behind it, its walls and roof, the storeys below, and the furniture.
+// The building, cut away to show one room: the city behind it, its walls and roof, and the furniture. The tower below it is tower.ts's.
 
 import { diamond, disc, get, grid, line, poly, rect, set } from './pixels'
 import type { Grid } from './pixels'
@@ -68,36 +68,6 @@ function floorInk(i: number, j: number): string {
 
 const WALL = 58
 
-/** The storeys under this floor: dark cladding, rows of windows, some of them lit. */
-function storeys(g: Grid): void {
-  for (let x = 16; x < 240; x++) {
-    const isLeft = x < 128
-    const u = isLeft ? x - 16 : 239 - x
-    const top = 128 + (u >> 1)
-    for (let k = 11; k < 50; k++) {
-      const row = Math.floor((k - 13) / 18)
-      const v = (k - 13) - row * 18
-      const col = Math.floor(u / 14)
-      const p = u % 14
-      let c = isLeft ? C.ink : C.slab
-      if (k < 13 || v === 16) c = isLeft ? C.slab2 : C.edge
-      else if (v === 17) c = C.void
-      else if (p > 2 && p < 12 && v > 3 && v < 14) {
-        const n = hash(col + (isLeft ? 3 : 41), row + 7) % 9
-        const lit = n < 2 ? '#6FB9C2' : n < 4 ? '#2A7585' : n === 4 ? C.ember : C.deep
-        const isSill = v === 13 || p === 3
-        c = isSill ? C.void : v === 4 ? C.rim : n < 5 ? lit : '#0A161C'
-        // Someone's shelf, or a lamp, in the lit ones.
-        if (n < 4 && !isSill && v > 9 && p > 6) c = C.deep
-      }
-      if (u > 107) c = u === 109 ? C.cyan : isLeft ? C.slab : C.slab2
-      if (u === 56 && k > 14) c = C.teal
-      set(g, x, top + k, c)
-    }
-    for (let k = 50; k < 53; k++) set(g, x, top + k, k === 50 ? C.teal : C.void)
-  }
-}
-
 /** A window in the right wall: is (u, v) inside its glass, on its frame, or neither? */
 function windowAt(u: number, v: number): 'glass' | 'frame' | 'none' {
   for (const [a, b] of [[5, 31], [37, 63], [69, 91], [97, 109]] as const) {
@@ -111,10 +81,10 @@ function windowAt(u: number, v: number): 'glass' | 'frame' | 'none' {
   return 'none'
 }
 
-/** Storeys, landing, road, floor and walls. Transparent through the windows and outside. */
+/** Landing, road, floor and walls. Transparent through the windows, outside, and below the floor's slab. */
 export function shell(): Grid {
+  // Below this floor's slab the grid is left clear: the tower's own faces show there (tower.ts).
   const g = grid(W, VIEW.h)
-  storeys(g)
 
   // The landing and the road, held off the building on posts.
   for (const [px, py] of [[50, 188], [64, 195], [78, 188], [128, 200], [172, 194]] as const) {
