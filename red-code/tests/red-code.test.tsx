@@ -544,12 +544,21 @@ describe('the playable room', () => {
     expect(svg.includes('bikeSE')).toBe(true)
   })
 
-  test('the megacity and its cloud sea stand at the tower’s scale, four layers drifting, lightning resting unseen', () => {
+  test('the megacity stands in fog at the tower’s scale: sheets between the rings, currents down between the blocks, lightning resting unseen', () => {
     const svg = drawRoom(fresh(), T0 + 120000, { isStill: false })
-    for (const k of [0, 1, 2, 3]) {
-      expect(svg.includes(`fill="url(#sk${k})"`)).toBe(true)
-      expect(svg.includes(`animation:sk${k} `)).toBe(true)
-    }
+    // two crests, each also mirrored, sliding at their own speeds: no billows, and no one loop to see
+    for (const id of ['va', 'vam', 'vb', 'vbm']) expect(svg.includes(`<use href="#s${id}" style="animation:v`)).toBe(true)
+    expect(svg.includes('url(#sk')).toBe(false)
+    // fog between the rings inside the tower's group, at the sea's own height, and in front of the tower
+    expect(svg.split('<g class="cf">').length).toBe(4)
+    expect(svg.includes('.cf{transform:translateY(')).toBe(true)
+    // a set of currents for each gap and one across the tower, mist running down each
+    for (const k of [0, 1, 2, 3]) expect(svg.includes(`<g mask="url(#vq${k})">`)).toBe(true)
+    expect(svg.includes('animation:vr ')).toBe(true)
+    // the neon in the fog, cyan and crimson
+    expect(svg.includes('animation:vg ')).toBe(true)
+    expect(svg.includes('<path fill="#4FE0F2" opacity=".11"')).toBe(true)
+    expect(svg.includes('<path fill="#FF3355" opacity=".15"')).toBe(true)
     // the city is drawn inside the tower's group, the sea in its own group placed by the tower's bands
     expect(svg.includes('<g class="tw"><defs><pattern id="fr"')).toBe(true)
     expect(svg.includes('<path id="mL"')).toBe(true)
@@ -561,7 +570,7 @@ describe('the playable room', () => {
     expect(svg).toMatch(/\.cs\{transform:translate\(\d+px,\d+px\) scale\(0\.\d+\)/)
     expect(svg).toMatch(/<g style="opacity:0;animation:zap /)
     const still = drawRoom(fresh(), T0 + 120000, { isStill: true })
-    for (const k of [0, 1, 2, 3]) expect(still.includes(`fill="url(#sk${k})"`)).toBe(true)
+    for (const id of ['va', 'vam', 'vb', 'vbm']) expect(still.includes(`<use href="#s${id}"`)).toBe(true)
     expect(still.includes('animation:zap')).toBe(false)
   })
 

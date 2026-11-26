@@ -1,7 +1,7 @@
 // The megacity round the tower, drawn in the tower's own pixels and at the room's own angle: two across
 // for one up, so every block, bridge and rail meets the room's pixel art at its slopes. It is drawn inside
 // the tower's group, so it shrinks and moves with the tower and keeps the same pixel size at every window
-// shape. Blocks rise out of the cloud sea; their feet run far below the window, where the cloud hides them.
+// shape. Blocks rise out of the fog; their feet run far below the window, where it hides them.
 //
 // The city is composed, not scattered: each tower is placed by hand and given a form of its own (a shed
 // roof cut on a slant, a block stepped back to one corner, a top that cantilevers out to one side, a front
@@ -9,15 +9,16 @@
 // structure (edges, roof lines) and in a few bands of white panoramic offices. Crimson marks a handful.
 //
 // Depth is told the way an orthographic camera tells it: what is further back is drawn first and stands
-// higher, and bands of fog lie between the rings.
+// higher, and sheets of fog (fog.ts) lie between the rings, so each ring stands in it to a different height.
 
 import { spire } from './city'
+import { between } from './fog'
 import { hash } from './room'
 
 /** Seconds, for a delay that puts a loop of `ms` at the clock's place in it. */
 const at = (now: number, ms: number) => `${-(now % ms) / 1000}s`
 
-/** Below the window at every window shape: where faces stop, under the cloud. */
+/** Below the window at every window shape: where faces stop, under the fog. */
 const FOOT = 900
 
 const CYAN = '#4FE0F2'
@@ -241,12 +242,8 @@ function far(): string {
   return `<g opacity=".5"><path fill="#0B1A21" d="${body}"/><path stroke="${DIM}" opacity=".6" d="${lit}"/></g>`
 }
 
-/** Fog lying across the city at `y`, thickest in the middle of its depth, drifting slowly. */
-function fog(y: number, deep: number, ms: number, now: number): string {
-  let d = ''
-  for (let k = 0; k < 3; k++) d += `<rect x="-1700" y="${y + Math.round((k * deep) / 6)}" width="2200" height="${Math.round((deep * (3 - k)) / 3)}" fill="#123540" opacity=".16"/>`
-  return `<g style="animation:fog ${ms / 1000}s ease-in-out ${at(now, ms)} infinite alternate">${d}</g>`
-}
+/** The lit corners of a ring that go under the fog in front of it: every crimson tower and every pulse. */
+const litOf = (specs: Spec[]) => specs.filter(s => s.red || s.pulse).map(s => [s.x, s.red === true] as const)
 
 /** Red lamps at the high corner of the tallest roofs. */
 function lamps(): string {
@@ -299,12 +296,11 @@ function flyers(now: number): string {
   }).join('')
 }
 
-/** The motion of the city: trains, flyers, pulses up the corners, fog. */
+/** The motion of the city: trains, flyers, pulses up the corners. */
 export const CITY_KEYS =
   RAILS.map((r, k) => `@keyframes rail${k}{to{transform:translate(${r.x1}px,${r.y1}px)}}`).join('') +
   FLY.map(([, x1, y], k) => `@keyframes fy${k}{to{transform:translate(${x1}px,${y}px)}}`).join('') +
-  '@keyframes up{to{stroke-dashoffset:618}}' +
-  '@keyframes fog{to{transform:translateX(-60px)}}'
+  '@keyframes up{to{stroke-dashoffset:618}}'
 
 /** The office walkers' motion, known once the city is laid out. */
 export function walkerKeys(): string {
@@ -314,21 +310,24 @@ export function walkerKeys(): string {
 
 /**
  * The whole megacity behind the tower, in the tower's pixels. `quiet` drops what passes (traffic, walkers,
- * pulses, blinking lamps) and leaves every building as it is; `bare`, the last resort of a crowded room,
- * also drops the far ring and the fog.
+ * pulses, blinking lamps, the currents in the fog) and leaves every building as it is; `thin` also drops
+ * the neon's light in the fog; `bare`, the last resort of a crowded room,
+ * also drops the far ring and the fog behind the middle ring; the fog in front of it always stays.
  */
-export function megacity(now: number, level: 'full' | 'quiet' | 'bare' = 'full'): string {
+export function megacity(now: number, level: 'full' | 'quiet' | 'thin' | 'bare' = 'full'): string {
   walkKeys.length = 0
   const isLean = level !== 'full'
+  const rest = level === 'full' ? 0 : level === 'quiet' ? 1 : 2
   const isBare = level === 'bare'
   return (
     `<defs>${FINS}</defs>` +
-    (isBare ? '' : far() + spire(-560, -330, 120) + fog(-40, 120, 41000, now)) +
+    (isBare ? '' : far() + spire(-560, -330, 120) + between(0, now, [], rest)) +
     (isLean ? '' : flyers(now)) +
     rails(now, isLean) +
     drawRing('m', MID, 0.92, now, isLean) +
-    (isBare ? '' : fog(150, 140, 53000, now)) +
+    between(1, now, litOf(MID), rest) +
     drawRing('n', NEAR, 1, now, isLean) +
+    between(2, now, litOf(NEAR), rest) +
     (isLean ? '' : lamps())
   )
 }
