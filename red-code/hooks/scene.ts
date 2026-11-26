@@ -255,7 +255,8 @@ const MOST = 130000
 export function drawRoom(w: World, now: number, o: { isStill: boolean }): string {
   const full = draw(w, now, o)
   if (full.length <= MOST) return full
-  // A busy moment: the cloud sea keeps drifting but drops what comes and goes (crests, wisps, lightning, neon).
+  // A busy moment: the cloud sea keeps drifting but drops what comes and goes (crests, wisps, lightning, rain),
+  // and the city its passing traffic and walkers. Every building stays as it is, so nothing seems to change.
   const quiet = draw(w, now, { ...o, isCalmSea: true })
   if (quiet.length <= MOST) return quiet
   // Then only the two nearest layers drift, before anyone stops.
@@ -349,7 +350,7 @@ function draw(w: World, now: number, o: { isStill: boolean; isLean?: boolean; is
   const all =
     city() +
     `<g style="animation:rip 4.9s steps(2) infinite">${column(lit.beacon)}</g>` +
-    `<g class="tw">${megacity(now, lean || o.isLeanSea === true)}${house}</g>` +
+    `<g class="tw">${megacity(now, lean ? 'bare' : o.isCalmSea === true ? 'quiet' : 'full')}${house}</g>` +
     cloudSea(now, { isLean: lean || o.isLeanSea === true, isCalm: o.isCalmSea === true, isStill: o.isStill }) +
     (lean || o.isCalmSea === true || o.isStill ? '' : storm(now)) +
     // Smoke over the middle, where the words are; over everything on a tall screen.

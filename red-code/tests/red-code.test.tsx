@@ -551,11 +551,11 @@ describe('the playable room', () => {
       expect(svg.includes(`animation:sk${k} `)).toBe(true)
     }
     // the city is drawn inside the tower's group, the sea in its own group placed by the tower's bands
-    expect(svg.includes('<g class="tw"><defs><pattern id="gL"')).toBe(true)
-    expect(svg.includes('<path id="fL"')).toBe(true)
-    // glass offices on the middle and near rings, penthouses with white ceilings and someone walking
-    expect(svg.includes('fill="url(#gL)"')).toBe(true)
-    expect(svg.includes('stroke="#B8F6FF"')).toBe(true)
+    expect(svg.includes('<g class="tw"><defs><pattern id="fr"')).toBe(true)
+    expect(svg.includes('<path id="mL"')).toBe(true)
+    // black finned towers, bands of white offices with someone walking, light running up the corners
+    expect(svg.includes('fill="url(#of)"')).toBe(true)
+    expect(svg.includes('animation:up ')).toBe(true)
     expect(svg).toMatch(/animation:pw[mn]\d+ /)
     expect(svg.includes('<g class="cs">')).toBe(true)
     expect(svg).toMatch(/\.cs\{transform:translate\(\d+px,\d+px\) scale\(0\.\d+\)/)

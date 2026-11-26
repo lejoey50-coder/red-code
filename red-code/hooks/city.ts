@@ -52,15 +52,13 @@ export function city(): string {
     }
   }
   for (let k = 0; k < 40; k++) ink.run((hash(k, 21) * 7 + k * 53) % W, (hash(k, 33) * 3 + k * 11) % 130, 1, k % 5 === 0 ? '#7FB7C2' : '#2C4A55')
-  // the city's own light, thrown up into the haze above the cloud sea
-  for (let y = 206; y < 262; y += 4) {
-    const c = y > 246 ? '#2A1A26' : y > 230 ? '#1C1A25' : '#15202B'
-    for (let x = hash(y, 2) % 40; x < W; ) {
-      const n = 40 + (hash(x, y) % 60)
-      ink.box(x, y, n, 2, c)
-      x += n + 10 + ((262 - y) >> 1)
-    }
-  }
+  // the city's own light, thrown up into the haze above the cloud sea: three soft steps, warmer low down
+  const glow = [
+    [206, 56, '#15202B'],
+    [230, 32, '#1C1A25'],
+    [246, 16, '#2A1A26'],
+  ] as const
+  for (const [y, n, c] of glow) out += `<rect y="${y}" width="${W}" height="${n}" fill="${c}" opacity=".6"/>`
   drawn = out + ink.flush()
   return drawn
 }
