@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="red-code/art/fixture-launch.svg" alt="Red Code: a pixel-art tower with one lit room, beside a city skyline at night" width="100%">
+  <img src="red-code/art/header.png" alt="Red Code: a pixel-art tower with one lit room, where Red Code and two helpers work, beside black towers with white office bands standing in teal fog" width="100%">
 </p>
 
 <h1 align="center">Red Code</h1>
@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  <code>v0.7.0</code> · Claude Code desktop app (Windows) · dark mode
+  <code>v0.7.1-light</code> · Claude Code desktop app (Windows) · dark mode
 </p>
 
 ---
