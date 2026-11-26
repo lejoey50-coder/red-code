@@ -569,11 +569,16 @@ describe('the playable room', () => {
       expect(svg.includes(`<use href="#${key}B" stroke="#E8FAFF"/>`)).toBe(true)
     }
     // cores are shapes cut to the slope of their wall, in cyan and in crimson; no stroked halo round them
-    expect(svg.split(`<path fill="#075B80" d="M`).length >= 3).toBe(true)
+    for (const key of ['m', 'n']) {
+      expect(svg.includes(`<use href="#${key}c" stroke="#020508" stroke-width="10"/>`)).toBe(true)
+      expect(svg.includes(`<use href="#${key}c" fill="#E8FAFF"/>`)).toBe(true)
+      // thin circuits with soft light round them
+      expect(svg.includes(`<g stroke="#00CFFF" stroke-linejoin="round"><use href="#${key}v" stroke-width="11" opacity=".07"/>`)).toBe(true)
+    }
     // each in a trench with a dark lip, with soft light on the black beside it, as the tower's are
     expect(svg.split('<path fill="url(#tgx)" d="M').length > 12).toBe(true)
     expect(svg.includes('<path fill="url(#tgq)" d="M')).toBe(true)
-    expect(svg.split('<path fill="#FFD9DF" d="M').length).toBe(3)
+    expect(svg.split('" fill="#FFD9DF"/>').length).toBe(3)
     expect(svg.includes('stroke-width="23"')).toBe(false)
     // and what is cut into the black: grooves, ticks, landing marks
     {

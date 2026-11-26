@@ -138,14 +138,16 @@ function bar(cx: number, w: number, y0: number, y1: number, cut: Cut): string {
 
 /**
  * A broad core of light into the pen, built as the tower's are: a trench with a dark lip, the blue of its
- * walls, the core's colour and the white inside, and soft light on the black each side. Every shape's ends
+ * walls, the core's colour and the white inside, and soft light on the black each side. Every layer's ends
  * are cut at the slope of the wall it is in, so a core meets a roof line or a slot along that line, never
  * across it. `foot` says where a line down at `x` goes out of sight. Nothing is drawn if it has no length.
  */
 function core(p: Pen, edge: string, cx: number, y0: number, foot: (x: number) => number, cut: Cut, y1 = FOOT): void {
   const end = Math.min(y1, foot(cx))
-  if (end - y0 < 6) return
-  ;[6.5, 4.5, 2.5, 1.5].forEach((w, k) => p.add(`${edge}${k}`, bar(cx, w, y0, end, cut)))
+  if (end - y0 < 16) return
+  // only the white inside is a shape: the colour, the walls and the lip are stroked round it (`cores`)
+  // drawn five in from each end it shows, so the lip of its trench stops on the roof line or the slot, not past it
+  p.add(edge, bar(cx, 1.5, y0 + 5, end < FOOT ? end - 5 : end, cut))
   // the light beside it stops short of any nearer tower it would fall across
   const lit = Math.min(y1, foot(cx - 15), foot(cx), foot(cx + 15))
   if (lit - y0 > 12) p.add(`l${edge}`, `${bar(cx, 17, y0, lit, cut)}|`)
@@ -254,7 +256,7 @@ function details(p: Pen, s: Spec, vols: Vol[], foot: (x: number) => number, edge
     for (let q = 0; q < 3; q++) p.add('m', `M${v.x + u0} ${v.y - u0 / 2 + 7.5 + q * 4}l${w} ${-w / 2}`)
   }
   // a thin circuit on the left face: down from under the first slot, a turn at the wall's 45 degrees, and a foot
-  if (m > 1 && !s.light.includes('left')) {
+  if (!s.light.includes('left')) {
     const u = v.cham + Math.round((v.a - v.cham) * 0.5)
     const y = v.y - u / 2 + under
     const j = 8 + (hash(s.x, 34) % 2) * 6
@@ -302,25 +304,25 @@ const FAR: Array<[number, number, number, number, number]> = [
 
 /** The middle ring, monumental, left of the tower. */
 const MID: Spec[] = [
-  { x: -1320, y: -60, a: 70, b: 42, form: 'shed', bands: [[48, 12], [150, 8]], light: ['stub', 'trace'] },
-  { x: -1180, y: 40, a: 56, b: 84, form: 'step', bands: [[30, 14]], light: ['spine'] },
+  { x: -1320, y: -60, a: 70, b: 42, form: 'shed', bands: [[48, 12], [150, 8]], light: ['stub', 'trace', 'left'] },
+  { x: -1180, y: 40, a: 56, b: 84, form: 'step', bands: [[30, 14]], light: ['spine', 'blade'] },
   { x: -1010, y: -150, a: 84, b: 56, form: 'cham', red: true, bands: [[22, 16], [210, 12]], light: ['spine'], pulse: true },
-  { x: -880, y: 70, a: 42, b: 56, form: 'cant', bands: [[40, 10]], light: ['blade'] },
+  { x: -880, y: 70, a: 42, b: 56, form: 'cant', bands: [[40, 10]], light: ['blade', 'drop'] },
   { x: -760, y: -40, a: 56, b: 70, form: 'shed', bands: [[64, 14]], light: ['left', 'trace'] },
   { x: -520, y: -110, a: 98, b: 70, form: 'step', bands: [[26, 14], [120, 18]], light: ['drop', 'blade'], pulse: true },
-  { x: -640, y: 110, a: 70, b: 42, form: 'shed', bands: [[16, 10]], light: ['trace'] },
-  { x: -380, y: 30, a: 56, b: 42, form: 'cham', bands: [[50, 12]], light: ['drop'] },
-  { x: -250, y: -20, a: 42, b: 70, form: 'cant', red: true, bands: [[12, 14]], light: ['left'] },
-  { x: -120, y: 90, a: 56, b: 56, form: 'shed', bands: [[34, 12]], light: ['spine'], pulse: true },
+  { x: -640, y: 110, a: 70, b: 42, form: 'shed', bands: [[16, 10]], light: ['trace', 'left', 'drop'] },
+  { x: -380, y: 30, a: 56, b: 42, form: 'cham', bands: [[50, 12]], light: ['drop', 'blade'] },
+  { x: -250, y: -20, a: 42, b: 70, form: 'cant', red: true, bands: [[12, 14]], light: ['left', 'trace'] },
+  { x: -120, y: 90, a: 56, b: 56, form: 'shed', bands: [[34, 12]], light: ['trace', 'spine'], pulse: true },
 ]
 
 /** The near ring: broad, low and dark, its offices bright, at the bottom left. */
 const NEAR: Spec[] = [
-  { x: -1260, y: 120, a: 84, b: 56, form: 'shed', bands: [[30, 18]], light: ['blade'] },
-  { x: -1060, y: 60, a: 70, b: 84, form: 'step', red: true, bands: [[16, 16], [96, 12]], light: ['stub', 'trace'] },
-  { x: -820, y: 150, a: 56, b: 70, form: 'cham', bands: [[14, 20]], light: ['spine'], pulse: true },
+  { x: -1260, y: 120, a: 84, b: 56, form: 'shed', bands: [[30, 18]], light: ['drop', 'blade'] },
+  { x: -1060, y: 60, a: 70, b: 84, form: 'step', red: true, bands: [[16, 16], [96, 12]], light: ['stub', 'trace', 'left'] },
+  { x: -820, y: 150, a: 56, b: 70, form: 'cham', bands: [[14, 20]], light: ['trace', 'spine'], pulse: true },
   { x: -600, y: 90, a: 70, b: 56, form: 'shed', bands: [[40, 16], [110, 10]], light: ['drop', 'left'] },
-  { x: -330, y: 170, a: 56, b: 56, form: 'cham', red: true, bands: [[20, 14]], light: ['blade'] },
+  { x: -330, y: 170, a: 56, b: 56, form: 'cham', red: true, bands: [[20, 14]], light: ['blade', 'left'] },
 ]
 
 /** How high a volume's outline stands at `x`: its back roof lines; far below everything where it does not reach. */
@@ -333,11 +335,20 @@ function crest(v: Vol, x: number): number {
 
 /**
  * A ring's cores in one colour: the soft light beside each (one path apiece, as the light is laid across each
- * shape's own width), then the shapes `core` laid down, from the trench's dark lip in to the white.
+ * shape's own width), then the trench round each core, from its dark lip in to the white.
  */
-const cores = (p: Pen, edge: string, glow: string, wall: string, ink: string, hot: string) =>
+const cores = (p: Pen, edge: string, id: string, glow: string, wall: string, ink: string, hot: string) =>
   p.get(`l${edge}`).split('|').filter(Boolean).map(d => `<path fill="url(#${glow})" d="${d}"/>`).join('') +
-  `<path fill="#020508" d="${p.get(`${edge}0`)}"/><path fill="${wall}" d="${p.get(`${edge}1`)}"/><path fill="${ink}" d="${p.get(`${edge}2`)}"/><path fill="${hot}" d="${p.get(`${edge}3`)}"/>`
+  // the white inside is the shape `id`; each layer out from it is that shape's outline, stroked wider
+  `<use href="#${id}" stroke="#020508" stroke-width="10"/><use href="#${id}" stroke="${wall}" stroke-width="6"/><use href="#${id}" stroke="${ink}" stroke-width="2"/><use href="#${id}" fill="${hot}"/>`
+
+/**
+ * A ring's thin circuits in one colour, from the path `id`: soft light round the line in two steps, the
+ * colour of its trench's walls, and the line itself.
+ */
+const circuits = (id: string, wall: string, ink: string) =>
+  `<g stroke="${ink}" stroke-linejoin="round"><use href="#${id}" stroke-width="11" opacity=".07"/><use href="#${id}" stroke-width="7" opacity=".12"/>` +
+  `<use href="#${id}" stroke="${wall}" stroke-width="3"/><use href="#${id}"/></g>`
 
 /** Crimson light on the black each side of a core: the cyan one is the tower's own (tower.ts's `tgx`). */
 const GLOW = `<defs><linearGradient id="tgq"><stop stop-color="${RED}" stop-opacity="0"/><stop offset=".5" stop-color="${RED}" stop-opacity=".3"/><stop offset="1" stop-color="${RED}" stop-opacity="0"/></linearGradient></defs>`
@@ -368,7 +379,7 @@ function drawRing(key: string, specs: Spec[], opacity: number, now: number, isLe
     }
   })
   return (
-    `<g opacity="${opacity}"><defs><path id="${key}L" d="${p.get('L')}"/><path id="${key}B" d="${p.get('Bc')}"/></defs>` +
+    `<g opacity="${opacity}"><defs><path id="${key}L" d="${p.get('L')}"/><path id="${key}B" d="${p.get('Bc')}"/><path id="${key}c" d="${p.get('ec')}"/><path id="${key}r" d="${p.get('er')}"/><path id="${key}v" d="${p.get('vec')}"/><path id="${key}w" d="${p.get('ver')}"/></defs>` +
     `<use href="#${key}L" fill="#060B10"/><path fill="#0A1219" d="${p.get('R')}"/><path fill="#0E1A21" d="${p.get('C')}"/><path fill="#0D171D" d="${p.get('T')}"/>` +
     // grooves and fins cut into the faces, under the slots that cross them
     `<path stroke="#020508" stroke-width="2" d="${p.get('g')}"/><path stroke="#22323D" d="${p.get('g2')}"/>` +
@@ -381,11 +392,10 @@ function drawRing(key: string, specs: Spec[], opacity: number, now: number, isLe
     // masts and louvres, in dull metal
     `<path stroke="#22323D" d="${p.get('m')}"/>` +
     `<path stroke="${DIM}" opacity=".35" d="${p.get('d')}"/><path stroke="#0E7FA0" d="${p.get('tec')}"/><path stroke="#A0142F" d="${p.get('ter')}"/>` +
-    cores(p, 'ec', 'tgx', '#075B80', CYAN, '#E8FAFF') +
-    cores(p, 'er', 'tgq', '#7A0B22', RED, '#FFD9DF') +
-    // the thin traces: the blue (or crimson) of their walls, and a single line of light
-    `<path stroke="#075B80" stroke-width="3" d="${p.get('vec')}"/><path stroke="${CYAN}" d="${p.get('vec')}"/>` +
-    `<path stroke="#7A0B22" stroke-width="3" d="${p.get('ver')}"/><path stroke="${RED}" d="${p.get('ver')}"/>` +
+    cores(p, 'ec', `${key}c`, 'tgx', '#075B80', CYAN, '#E8FAFF') +
+    cores(p, 'er', `${key}r`, 'tgq', '#7A0B22', RED, '#FFD9DF') +
+    circuits(`${key}v`, '#075B80', CYAN) +
+    circuits(`${key}w`, '#7A0B22', RED) +
     `${pulses}</g>`
   )
 }
