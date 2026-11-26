@@ -7,6 +7,7 @@
 // higher, and the haze of the night air thins it. The faces reuse the tower's own window patterns
 // (tower.ts), so the whole city shares one lattice of windows with the tower.
 
+import { GLASS_BACK, glassDefs } from './glass'
 import { ROOM_INK as C, hash } from './room'
 
 /** Seconds, for a delay that puts a loop of `ms` at the clock's place in it. */
@@ -49,27 +50,89 @@ function snap(x: number, y: number, a: number, b: number, h: number, seam: strin
   return { x: sx, y: y - lift, a: Math.max(14, Math.round(a / 14) * 14), b: Math.max(14, Math.round(b / 14) * 14), h, seam }
 }
 
-type Tier = { key: string; blocks: Block[]; opacity: number; lit: boolean }
+/** A pointed crown over a roof: its front corner, its two spans, and how high its peak stands. */
+type Crown = { x: number; y: number; a: number; b: number; rise: number }
+/** A mast on a roof: its foot and its height. */
+type Mast = { x: number; y: number; h: number }
+type Tier = { key: string; blocks: Block[]; crowns: Crown[]; masts: Mast[]; opacity: number; lit: boolean }
+
+/** A smaller block standing back on a roof, `f` of its size and `rise` tall. */
+function setback(k: Block, f: number, rise: number, seam: string): Block {
+  const a = Math.max(14, Math.round((k.a * f) / 14) * 14)
+  const b = Math.max(14, Math.round((k.b * f) / 14) * 14)
+  // the smaller roof's front corner, moved back from the big one by half of what each side gave up
+  const x = k.x - (k.a - a) / 2 + (k.b - b) / 2
+  const y = k.y - (k.a - a) / 4 - (k.b - b) / 4
+  return { x, y: y - rise, a, b, h: rise + 2, seam }
+}
 
 /** One ring of the city: blocks spread across `from..to`, roofs between `top` and `low`, back to front. */
 function ring(key: string, seed: number, from: number, to: number, step: number, size: [number, number], top: number, low: number, opacity: number, lit: boolean, skip?: [number, number]): Tier {
-  const blocks: Block[] = []
+  const groups: Block[][] = []
+  const crowns: Crown[] = []
+  const masts: Mast[] = []
   for (let x = from; x < to; x += step + (hash(x, seed) % step)) {
     if (skip && x > skip[0] && x < skip[1]) continue
     const a = size[0] + (hash(x, seed + 1) % (size[1] - size[0]))
     const b = size[0] + (hash(seed + 2, x) % (size[1] - size[0]))
     const y = top + (hash(x, seed + 3) * 7) % (low - top)
     const seam = hash(x, seed + 4) % 3 === 0 ? C.red : hash(x, seed + 5) % 2 === 0 ? C.cyan : C.teal
-    blocks.push(snap(x, y, a, b, FOOT - y, seam))
-    // a plant on some roofs: a smaller block standing back on the roof
-    if (hash(x, seed + 6) % 3 === 0) {
-      const k = blocks[blocks.length - 1]!
-      blocks.push(snap(k.x + 14, k.y - 10 - (hash(x, 9) % 18), k.a / 3, k.b / 3, 12 + (hash(x, 9) % 18), C.edge))
-    }
+    const k = snap(x, y, a, b, FOOT - y, seam)
+    const group = [k]
+    // the roof: a setback tower, a small plant room, a pointed crown, a mast, or flat
+    const top2 = (() => {
+      switch (hash(x, seed + 6) % 6) {
+        case 0: {
+          const s = setback(k, 0.6, 28 + (hash(x, 7) % 40), seam)
+          group.push(s)
+          return s
+        }
+        case 1:
+          group.push(setback(k, 0.34, 10 + (hash(x, 9) % 14), C.edge))
+          return k
+        default:
+          return k
+      }
+    })()
+    const style = hash(x, seed + 8) % 4
+    if (style === 0) crowns.push({ x: top2.x, y: top2.y, a: top2.a, b: top2.b, rise: 10 + ((top2.a + top2.b) >> 3) })
+    else if (style === 1) masts.push({ x: top2.x + ((top2.b - top2.a) >> 1), y: top2.y - ((top2.a + top2.b) >> 2), h: 16 + (hash(x, 10) % 26) })
+    groups.push(group)
   }
-  // farther back first: the higher a roof's ground line, the further away it stands
-  blocks.sort((p, q) => p.x + p.y * 2 - (q.x + q.y * 2))
-  return { key, blocks, opacity, lit }
+  // farther back first: the higher a roof's ground line, the further away it stands; a roof's own setback after it
+  groups.sort((p, q) => p[0]!.x + p[0]!.y * 2 - (q[0]!.x + q[0]!.y * 2))
+  return { key, blocks: groups.flat(), crowns, masts, opacity, lit }
+}
+
+/** Pointed crowns: the left slope in the shade, the right in the light, a neon line up the ridge. */
+function crowns(t: Tier): string {
+  let left = ''
+  let right = ''
+  let ridge = ''
+  for (const c of t.crowns) {
+    const px = c.x + ((c.b - c.a) >> 1)
+    const py = c.y - ((c.a + c.b) >> 2) - c.rise
+    left += `M${c.x} ${c.y}L${c.x - c.a} ${c.y - c.a / 2}L${px} ${py}z`
+    right += `M${c.x} ${c.y}L${c.x + c.b} ${c.y - c.b / 2}L${px} ${py}z`
+    ridge += `M${c.x + 0.5} ${c.y}L${px + 0.5} ${py}`
+  }
+  return `<path fill="#0A1218" d="${left}"/><path fill="#17252E" d="${right}"/><path stroke="${t.lit ? C.cyan : C.edge}" d="${ridge}"/>`
+}
+
+/** Masts on the roofs, each with a lamp at its tip, and a dish that turns now and then. */
+function masts(t: Tier): string {
+  let pole = ''
+  let tips = ''
+  let dish = ''
+  t.masts.forEach((m, i) => {
+    pole += `M${m.x + 0.5} ${m.y}v${-m.h}M${m.x - 2} ${m.y - (m.h >> 1)}.5h5`
+    tips += `M${m.x} ${m.y - m.h - 1}.5h1`
+    if (i % 2 === 0) dish += `M${m.x + 1} ${m.y - m.h + 6}.5h3m-1 -1h2m-1 -1h1`
+  })
+  return (
+    `<path stroke="#3B5360" d="${pole}"/><path stroke="#FF9295" style="animation:blink 1.6s step-end infinite" d="${tips}"/>` +
+    (dish === '' ? '' : `<path stroke="#6E8C97" style="animation:dish 9s steps(1) infinite" d="${dish}"/>`)
+  )
 }
 
 /** The city, ring by ring: far, middle and near. Laid out once. */
@@ -78,7 +141,7 @@ function layout(): Tier[] {
   if (rings.length > 0) return rings
   rings = [
     ring('f', 11, -1300, 330, 52, [28, 56], -40, 110, 0.38, false),
-    ring('m', 23, -1300, 300, 76, [42, 70], 20, 200, 0.68, true, [-30, 250]),
+    ring('m', 23, -1300, 300, 76, [42, 70], 20, 200, 0.86, true, [-30, 250]),
     ring('n', 37, -1300, -170, 140, [42, 84], 110, 250, 1, true),
   ]
   return rings
@@ -93,8 +156,8 @@ function drawTier(t: Tier, defs: Pen, isLean: boolean): string {
     p.add('T', roof(k))
     // far off, the haze takes the fine lines
     if (!t.lit) continue
-    // light comes from the right, as in the room: the right roof edge catches it
-    p.add('rim', `M${k.x} ${k.y - 0.5}l${k.b} ${-k.b / 2}`)
+    // light comes from the right, as in the room: the right roof edge catches it; near roofs are lined in neon
+    p.add(t.key === 'n' && k.h > 300 ? `r${k.seam}` : 'rim', `M${k.x} ${k.y - 0.5}l${k.b} ${-k.b / 2}`)
     p.add('edge', `M${k.x - k.a} ${k.y - k.a / 2 - 0.5}l${k.a} ${k.a / 2}`)
     p.add(`s${k.seam}`, `M${k.x + 0.5} ${k.y}v${k.h}`)
   }
@@ -102,18 +165,66 @@ function drawTier(t: Tier, defs: Pen, isLean: boolean): string {
   const R = `${t.key}R`
   defs.add(L, `<path id="${L}" d="${p.get('L')}"/>`)
   defs.add(R, `<path id="${R}" d="${p.get('R')}"/>`)
-  const lit = t.lit && !isLean ? `<use href="#${L}" fill="url(#la)"/><use href="#${R}" fill="url(#ra)"/>` : ''
   const seams = [C.red, C.cyan, C.teal, C.edge]
     .map(c => (p.get(`s${c}`) === '' ? '' : `<path stroke="${c}"${c === C.edge ? '' : ' stroke-dasharray="8 1"'} d="${p.get(`s${c}`)}"/>`))
     .join('')
+  const neonRims = [C.red, C.cyan, C.teal].map(c => (p.get(`r${c}`) === '' ? '' : `<path stroke="${c}" d="${p.get(`r${c}`)}"/>`)).join('')
+  // far off, small windows; nearer, floor-to-ceiling glass offices, the left faces in the shade as in the room
+  const faces = t.lit && !isLean
+    ? `<use href="#${L}" fill="${GLASS_BACK}"/><use href="#${R}" fill="${GLASS_BACK}"/><use href="#${L}" fill="url(#gL)"/><use href="#${R}" fill="url(#gR)"/><use href="#${L}" fill="url(#nL)"/><use href="#${R}" fill="url(#nR)"/>` +
+      (`<g style="animation:ol 97s steps(1) infinite"><use href="#${L}" fill="url(#oL)"/><use href="#${R}" fill="url(#oR)"/></g>`) +
+      `<use href="#${L}" fill="#02060A" opacity=".22"/>`
+    : `<use href="#${L}" fill="${C.ink}"/><use href="#${R}" fill="${C.slab}"/><use href="#${L}" fill="url(#wl)"/><use href="#${R}" fill="url(#wr)"/>`
   return (
-    `<g opacity="${t.opacity}">` +
-    `<use href="#${L}" fill="${C.ink}"/><use href="#${R}" fill="${C.slab}"/>` +
-    `<use href="#${L}" fill="url(#wl)"/><use href="#${R}" fill="url(#wr)"/>${lit}` +
-    `<path fill="${C.slab2}" d="${p.get('T')}"/><path stroke="${C.rim}" d="${p.get('rim')}"/><path stroke="${C.edge}" d="${p.get('edge')}"/>${seams}` +
+    `<g opacity="${t.opacity}">${faces}` +
+    `<path fill="${C.slab2}" d="${p.get('T')}"/><path stroke="${C.rim}" d="${p.get('rim')}"/><path stroke="${C.edge}" d="${p.get('edge')}"/>${neonRims}${seams}` +
     '</g>'
   )
 }
+
+/**
+ * Penthouses on some of the tall blocks: the top floor all glass, a white ceiling lit end to end, a sofa,
+ * a lamp and someone walking about. Drawn per block, so the ceiling meets each roof exactly.
+ */
+function penthouses(t: Tier, isLean: boolean): string {
+  let room = ''
+  let ceil = ''
+  let ceil2 = ''
+  let slab = ''
+  let mull = ''
+  let sofa = ''
+  let walkers = ''
+  const P = 24
+  t.blocks.forEach((k, i) => {
+    if (k.h < 300 || hash(k.x, 13) % 3 !== 0) return
+    const faces = [
+      [k.x - k.a, k.y - k.a / 2, k.a, 1],
+      [k.x, k.y, k.b, -1],
+    ] as const
+    for (const [x0, y0, w, way] of faces) {
+      const s = way / 2
+      room += `M${x0} ${y0}l${w} ${w * s}v${P}l${-w} ${-w * s}z`
+      ceil += `M${x0} ${y0 + 2.5}l${w} ${w * s}`
+      ceil2 += `M${x0} ${y0 + 3.5}l${w} ${w * s}`
+      slab += `M${x0} ${y0 + P - 1.5}l${w} ${w * s}`
+      for (let u = 28; u < w; u += 28) mull += `M${x0 + u + 0.5} ${y0 + u * s + 4}v${P - 6}`
+      const u = 6 + (hash(k.x, w) % Math.max(1, w - 20))
+      sofa += `M${x0 + u} ${y0 + u * s + P - 6}l8 ${8 * s}v3l-8 ${-8 * s}z`
+    }
+    if (isLean || i % 2 !== 0) return
+    // someone crossing the room behind the glass, there and back
+    const [x0, y0, w] = faces[0]
+    const ms = 14000 + (hash(k.x, 14) % 9) * 1000
+    walkers += `<g style="transform:translate(${x0 + 4}px,${y0 + 8}px);animation:pw${t.key}${i} ${ms / 1000}s steps(${Math.round(w / 2)}) infinite alternate"><path fill="#0A1218" d="M1 0h2v2h-2zM0 2h4v6h-4zM0 8h1v4h-1zM3 8h1v4h-1z"/></g>`
+    walkKeys.push(`@keyframes pw${t.key}${i}{to{transform:translate(${x0 + w - 8}px,${y0 + 8 + (w - 12) / 2}px)}}`)
+  })
+  return (
+    `<path fill="#3A5966" d="${room}"/><path stroke="#F2FAFB" d="${ceil}"/><path stroke="#BFD6DB" d="${ceil2}"/>` +
+    `<path stroke="#0A1218" d="${slab}"/><path stroke="#2C4752" d="${mull}"/><path fill="#0E1A20" d="${sofa}"/>${walkers}`
+  )
+}
+/** The walkers' paths, gathered while the penthouses are laid out. */
+const walkKeys: string[] = []
 
 /** Bridges between neighbours in the middle ring, at the room's slope, each with a lit strip. */
 function bridges(t: Tier): string {
@@ -201,7 +312,17 @@ function flyers(now: number): string {
 export const CITY_KEYS =
   RAILS.map((r, k) => `@keyframes rail${k}{to{transform:translate(${r.x1}px,${r.y1}px)}}`).join('') +
   FLY.map(([, x1, y], k) => `@keyframes fy${k}{to{transform:translate(${x1}px,${y}px)}}`).join('') +
-  '@keyframes nf{0%,100%{opacity:1}92%{opacity:.3}94%{opacity:1}96%{opacity:.4}}'
+  '@keyframes nf{0%,100%{opacity:1}92%{opacity:.3}94%{opacity:1}96%{opacity:.4}}' +
+  // offices going dark and lighting again: a few at a time, over a minute and a half
+  // a dish on a mast that swings round, once in a while
+  '@keyframes dish{0%,70%{transform:none}71%,100%{transform:translateX(-3px)}}' +
+  '@keyframes ol{0%,30%{opacity:0}31%,62%{opacity:1}63%,80%{opacity:.5}81%,100%{opacity:0}}'
+
+/** The penthouse walkers' motion, known once the city is laid out. */
+export function walkerKeys(): string {
+  megacity(0)
+  return walkKeys.join('')
+}
 
 let cachedStatic: Map<string, string> = new Map()
 
@@ -216,9 +337,10 @@ export function megacity(now: number, isLean = false): string {
     // lean, for the busiest drawing: the far ring goes, and the bridges and lamps with it
     const tiers = isLean
       ? '@RAIL@' + drawTier(mid, defs, isLean) + drawTier(near, defs, isLean)
-      : drawTier(far, defs, isLean) + '@RAIL@' + drawTier(mid, defs, isLean) + bridges(mid) + drawTier(near, defs, isLean) + lamps(mid)
+      : drawTier(far, defs, isLean) + crowns(far) + '@RAIL@' + drawTier(mid, defs, isLean) + penthouses(mid, isLean) + crowns(mid) + masts(mid) + bridges(mid) + drawTier(near, defs, isLean) + penthouses(near, isLean) + crowns(near) + masts(near) + lamps(mid)
     const shared = (isLean ? [mid, near] : [far, mid, near]).map(t => defs.get(`${t.key}L`) + defs.get(`${t.key}R`)).join('')
-    body = `<defs>${shared}</defs>${tiers}`
+    // lean, the offices are small windows again: the glass is the dearest pattern in the drawing
+    body = `<defs>${isLean ? '' : glassDefs()}${shared}</defs>${tiers}`
     cachedStatic.set(key, body)
   }
   const [before = '', after = ''] = body.split('@RAIL@')

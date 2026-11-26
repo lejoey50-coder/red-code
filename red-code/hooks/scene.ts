@@ -6,7 +6,7 @@
 import { VIEW, place, tileAt } from './map'
 import * as building from './building'
 import { SCENE, city, column, road } from './city'
-import { CITY_KEYS, megacity } from './megacity'
+import { CITY_KEYS, megacity, walkerKeys } from './megacity'
 import { grid, paths, rect } from './pixels'
 import type { Grid } from './pixels'
 import * as room from './room'
@@ -261,6 +261,9 @@ export function drawRoom(w: World, now: number, o: { isStill: boolean }): string
   // Then only the two nearest layers drift, before anyone stops.
   const thin = draw(w, now, { ...o, isCalmSea: true, isLeanSea: true })
   if (thin.length <= MOST) return thin
+  // Then the tower's ornaments rest too, and everyone still moves.
+  const bare = draw(w, now, { ...o, isCalmSea: true, isLeanSea: true, isLean: true })
+  if (bare.length <= MOST) return bare
   // Too many on the move at once: everyone but Red Code stands where they are going.
   const calm = draw({ ...w, actors: w.actors.map(a => (a.kind === 'red' ? a : { ...a, clips: a.clips.slice(-1) })) }, now, { ...o, isCalmSea: true })
   if (calm.length <= MOST) return calm
@@ -354,7 +357,7 @@ function draw(w: World, now: number, o: { isStill: boolean; isLean?: boolean; is
   const still = o.isStill ? '*{animation:none!important}' : ''
   return (
     `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${SCENE.w} ${SCENE.h}" preserveAspectRatio="xMaxYMax slice" shape-rendering="crispEdges" fill="none" stroke-width="1">` +
-    `<style>${o.isStill ? stillCss() : CSS + TOWER_KEYS + CITY_KEYS}${pen.css.join('')}${still}</style><defs><clipPath id="rf"><rect x="-10" y="1" width="20" height="9"/></clipPath>` +
+    `<style>${o.isStill ? stillCss() : CSS + TOWER_KEYS + CITY_KEYS + walkerKeys()}${pen.css.join('')}${still}</style><defs><clipPath id="rf"><rect x="-10" y="1" width="20" height="9"/></clipPath>` +
     `<linearGradient id="rf2" x1="1" y1="0" x2="0" y2="1"><stop offset=".45" stop-color="#fff"/><stop offset=".8" stop-color="#fff" stop-opacity="0"/></linearGradient><mask id="rd" maskUnits="userSpaceOnUse" x="-200" y="0" width="460" height="400"><rect x="-200" width="460" height="400" fill="url(#rf2)"/></mask>` +
     `<linearGradient id="smoke"><stop offset="0" stop-color="#05090E" stop-opacity="0"/><stop offset=".22" stop-color="#05090E" stop-opacity=".6"/><stop offset=".74" stop-color="#05090E" stop-opacity=".6"/><stop offset="1" stop-color="#05090E" stop-opacity="0"/></linearGradient>` +
     `${[...pen.defs.values()].join('')}</defs>${all}</svg>`

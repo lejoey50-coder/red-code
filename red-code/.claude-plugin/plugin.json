@@ -1,6 +1,6 @@
 {
   "name": "red-code",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "description": "Your interface as a place: a pixel-art building in a city at night, behind the whole window, with Red Code acting out what the session is doing.",
   "types": "./types/index.d.ts"
 }
