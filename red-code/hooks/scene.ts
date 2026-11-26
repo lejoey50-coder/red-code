@@ -12,7 +12,7 @@ import * as room from './room'
 import { INK, art, cycle, frames, markOf, parts, words } from './sprites'
 import { lightsOf } from './world'
 import { HOLO_DOWN, hotspots, hoverCss } from './play'
-import { PLACE_CSS, TOWER_KEYS, cloudBank, lift as liftShaft, walls, wisps } from './tower'
+import { PLACE_CSS, TOWER_KEYS, cloudSea, lift as liftShaft, walls, wisps } from './tower'
 import type { Actor, Clip, Face, Pose, World } from '../types'
 
 const cache = new Map<string, string>()
@@ -260,16 +260,22 @@ const MOST = 130000
 export function drawRoom(w: World, now: number, o: { isStill: boolean }): string {
   const full = draw(w, now, o)
   if (full.length <= MOST) return full
+  // A busy moment: the cloud sea keeps drifting but drops what comes and goes (crests, wisps, lightning, neon).
+  const quiet = draw(w, now, { ...o, isCalmSea: true })
+  if (quiet.length <= MOST) return quiet
+  // Then only the two nearest layers drift, before anyone stops.
+  const thin = draw(w, now, { ...o, isCalmSea: true, isLeanSea: true })
+  if (thin.length <= MOST) return thin
   // Too many on the move at once: everyone but Red Code stands where they are going.
-  const calm = draw({ ...w, actors: w.actors.map(a => (a.kind === 'red' ? a : { ...a, clips: a.clips.slice(-1) })) }, now, o)
+  const calm = draw({ ...w, actors: w.actors.map(a => (a.kind === 'red' ? a : { ...a, clips: a.clips.slice(-1) })) }, now, { ...o, isCalmSea: true })
   if (calm.length <= MOST) return calm
   const still = draw({ ...w, actors: w.actors.map(a => ({ ...a, clips: a.clips.slice(-1) })) }, now, { ...o, isStill: true })
   if (still.length <= MOST) return still
-  // Still too much: the tower's ornaments go (wisps, lift, lit windows, the far cloud), the room stays whole.
+  // Still too much: the tower's ornaments go (wisps, lift, lit windows, the far cloud layers), the room stays whole.
   return draw({ ...w, actors: w.actors.map(a => ({ ...a, clips: a.clips.slice(-1) })) }, now, { ...o, isStill: true, isLean: true })
 }
 
-function draw(w: World, now: number, o: { isStill: boolean; isLean?: boolean }): string {
+function draw(w: World, now: number, o: { isStill: boolean; isLean?: boolean; isCalmSea?: boolean; isLeanSea?: boolean }): string {
   const lean = o.isLean === true
   const pen: Pen = { defs: new Map(), css: [], now, isStill: o.isStill, n: 0 }
   const lit = lightsOf(w)
@@ -351,7 +357,7 @@ function draw(w: World, now: number, o: { isStill: boolean; isLean?: boolean }):
     (lean ? '' : `<g style="transform:translate(150px,${LINE - 2}px);animation:east ${s(EAST)} steps(355) ${s(-(now % EAST))} infinite">${once('trainEast', () => building.train(room.ROOM_INK.cyan))}</g>` +
     `<g style="transform:translate(340px,${LINE - 1}px) scaleX(-1);animation:west ${s(WEST)} steps(355) ${s(-(now % WEST))} infinite">${once('trainWest', () => building.train(room.ROOM_INK.red))}</g>`) +
     `<g class="tw">${house}</g>` +
-    cloudBank(now, lean) +
+    cloudSea(now, { isLean: lean || o.isLeanSea === true, isCalm: o.isCalmSea === true, isStill: o.isStill }) +
     // Smoke over the middle, where the words are; over everything on a tall screen.
     `<rect x="170" width="300" height="${SCENE.h}" fill="url(#smoke)"/><rect class="veil" width="${SCENE.w}" height="${SCENE.h}" fill="#05090E" opacity="0"/>`
 

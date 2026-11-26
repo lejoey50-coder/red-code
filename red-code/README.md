@@ -1,6 +1,6 @@
 # Red Code
 
-Your interface as a place: a city at night behind the whole window, and on the right a tall tower whose top floor is cut away to show one room you can play in. Below the room the tower runs down past rows of windows and an outside lift into a low bank of cloud. Red Code, a small crimson program, acts out what the session is really doing. Helpers appear only when real agents are running. It opens no pane. It sets the app's colors, its backdrop and the plates behind messages, for dark mode.
+Your interface as a place: a city at night behind the whole window, and on the right a tall tower whose top floor is cut away to show one room you can play in. Below the room the tower runs down past rows of windows and an outside lift into a sea of night cloud that fills the foot of the window, edge to edge: four layers drifting at their own speeds, crests that build and settle, wisps lifting round the tower, neon caught on the cloud tops, and once every few minutes a faint blue flash of far lightning inside the cloud. Red Code, a small crimson program, acts out what the session is really doing. Helpers appear only when real agents are running. It opens no pane. It sets the app's colors, its backdrop and the plates behind messages, for dark mode.
 
 ## Controls
 
@@ -91,6 +91,8 @@ This mod is for Claude Code 2.1.330 in the Windows desktop app. It needs no admi
 It reads event types, tool names, and the last part of a file name. It stores its settings on this PC, and for each open session: the project folder path, a badge number, a station and one word. It removes a session's record when the session ends. It sends nothing anywhere, and it cannot block or change a prompt or a tool call.
 
 ## Art
+
+The cloud sea is in `hooks/tower.ts`: each layer is one period of billows in an SVG pattern that slides left by exactly that period, so the loop never shows a reset. With motion off it rests whole, and what only shows while moving (crests, wisps, lightning) stays hidden. When a drawing nears the app's size limit, the crests, wisps, lightning and neon go first, then the far layers, before anyone in the room stops moving.
 
 The tower below the room (`hooks/tower.ts`) and the playable room (`hooks/play.ts`) are drawn as shapes and patterns sheared to the room's own two-across-one-up slope, so they meet the pixel art at its angles.
 

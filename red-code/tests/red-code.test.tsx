@@ -544,6 +544,19 @@ describe('the playable room', () => {
     expect(svg.includes('bikeSE')).toBe(true)
   })
 
+  test('the cloud sea runs edge to edge in four drifting layers, and its lightning rests unseen', () => {
+    const svg = drawRoom(fresh(), T0 + 120000, { isStill: false })
+    for (const k of [0, 1, 2, 3]) {
+      expect(svg.includes(`fill="url(#sk${k})"`)).toBe(true)
+      expect(svg.includes(`animation:sk${k} `)).toBe(true)
+    }
+    expect(svg.includes('<path fill="#151B23" d="M0 340H640V360H0z"/>')).toBe(true)
+    expect(svg).toMatch(/<g style="opacity:0;animation:zap /)
+    const still = drawRoom(fresh(), T0 + 120000, { isStill: true })
+    for (const k of [0, 1, 2, 3]) expect(still.includes(`fill="url(#sk${k})"`)).toBe(true)
+    expect(still.includes('animation:zap')).toBe(false)
+  })
+
   test('a Stop powers the hologram down, and it comes back', async ($, on) => {
     on('session.stop', (_: unknown, e: any) => ({ isTurnRunning: e.isTurnRunning }))
     const t = await open($, on)
