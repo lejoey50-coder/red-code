@@ -270,7 +270,7 @@ export function decor(g: Grid): void {
 
   // Sofa under the screen, with light beneath it.
   box(g, 0.2, 1.05, 0.85, 2.95, 0, 2, C.cyan, C.cyan, C.ice)
-  box(g, 0.12, 1.0, 0.92, 3.0, 2, 7, C.p3, C.p1, C.p2)
+  box(g, 0.12, 1.0, 0.92, 3.0, 2, 7, C.p2, C.p0, C.p1)
   box(g, 0.08, 1.0, 0.34, 3.0, 7, 15, C.p4, C.p1, C.p3)
   box(g, 0.34, 1.0, 0.92, 1.2, 7, 10, C.p4, C.p1, C.p2)
   box(g, 0.34, 2.8, 0.92, 3.0, 7, 10, C.p4, C.p1, C.p2)
@@ -299,7 +299,7 @@ export function decor(g: Grid): void {
 
   // A low chair that looks out of the window.
   box(g, 3.3, 1.3, 3.7, 1.7, 0, 3, C.slab, C.void, C.slab)
-  box(g, 3.18, 1.15, 3.82, 1.8, 3, 7, C.p3, C.p1, C.p2)
+  box(g, 3.18, 1.15, 3.82, 1.8, 3, 7, C.p2, C.p0, C.p1)
   box(g, 3.18, 1.62, 3.82, 1.85, 7, 15, C.p4, C.p2, C.p3)
   box(g, 3.18, 1.15, 3.3, 1.62, 7, 10, C.p4, C.p2, C.p3)
   box(g, 3.7, 1.15, 3.82, 1.62, 7, 10, C.p4, C.p2, C.p3)

@@ -8,14 +8,15 @@ import { INK } from './sprites'
 const C = {
   ...INK,
   void: '#04070B', ink: '#070D13', slab: '#0D161D', slab2: '#131F28', edge: '#22323D', rim: '#3B5360',
-  // Glass that is lit from below, from its lip to its middle.
-  g0: '#2B565E', g1: '#5B8F95', g2: '#79ACAF', g3: '#93C3C3', g4: '#A9D3D1',
-  // Dark gloss, the rest of the floor.
-  f0: '#0E1820', f1: '#1A2832', f2: '#20313C', f3: '#2B404C',
-  // Rough stone.
-  s0: '#080D12', s1: '#10181E', s2: '#162027', s3: '#1D2930', s4: '#293840',
-  // White panel.
-  p0: '#3C525A', p1: '#6B858B', p2: '#8DA6AA', p3: '#B4C9CA', p4: '#DCEAE8',
+  // The room is a light-line grid: black gloss everywhere, and every edge, seam and lip drawn in light.
+  // The floor's centre: dark glass, its lip and cut lines lit cyan.
+  g0: '#4FE0F2', g1: '#1C8EA3', g2: '#0F3A45', g3: '#0B1A22', g4: '#0E2029',
+  // The rest of the floor: black gloss, with a grid of dim light let into it.
+  f0: '#16707F', f1: '#05080B', f2: '#080D11', f3: '#0B1217',
+  // The left wall: black panels, their lips lit.
+  s0: '#020407', s1: '#080D12', s2: '#0B1117', s3: '#0F171E', s4: '#2FB5C8',
+  // Panels and furniture: black gloss in three tones, edges in light.
+  p0: '#04070A', p1: '#0A1015', p2: '#10181E', p3: '#1C8EA3', p4: '#7FEAF6',
   cyan: '#4FE0F2', ice: '#B8F6FF', teal: '#1C8EA3', deep: '#0E4551',
   red: '#EE344D', ember: '#8C1B31', coal: '#3A0D18', amber2: '#E08A3C',
 }
@@ -23,7 +24,7 @@ const C = {
 export const hash = (a: number, b: number) => (((a * 73856093) ^ (b * 19349663)) >>> 0) % 97
 export const wallBase = (x: number) => 72 + ((127 - x) >> 1)
 
-/** The archive: a white unit that curves out of the stone, with three dark shelves of discs. */
+/** The archive: a black unit that curves out of the wall, edged in light, with three dark shelves of discs. */
 export function archive(g: Grid): void {
   const D = 10
   for (let x = 32; x < 84; x++) {
@@ -34,7 +35,7 @@ export function archive(g: Grid): void {
     for (let y = b - 42 + cut; y < b; y++) set(g, x, y, y < b - 40 + cut ? C.p4 : y > b - 3 ? C.p0 : C.p2)
   }
   // Top face, and the end that faces us.
-  for (let k = 0; k < D; k++) for (let x = 26; x < 74; x++) for (const e of [0, 1]) set(g, x + k - 1, wallBase(x - 1) - 42 + (k >> 1) + e, k < 2 ? C.p1 : C.p3)
+  for (let k = 0; k < D; k++) for (let x = 26; x < 74; x++) for (const e of [0, 1]) set(g, x + k - 1, wallBase(x - 1) - 42 + (k >> 1) + e, k < 2 ? C.p4 : C.p2)
   for (let k = 0; k < D; k++) {
     const b = wallBase(22) + (k >> 1)
     for (let y = b - 40; y < b; y++) set(g, 23 + k, y, k > 7 ? C.p1 : C.p0)
@@ -49,7 +50,7 @@ export function archive(g: Grid): void {
     for (let k = 0; k < 6; k++) {
       const x = 38 + k * 8
       const b = wallBase(x - D) + 5 - 2 - row * 13
-      disc(g, x, b - 5, 3, '#4E6A72', 1)
+      disc(g, x, b - 5, 3, C.teal, 1)
       set(g, x, b - 5, C.void)
     }
   }
