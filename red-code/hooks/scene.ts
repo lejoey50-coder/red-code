@@ -5,7 +5,7 @@
 
 import { VIEW, place, tileAt } from './map'
 import * as building from './building'
-import { SCENE, city, column, road } from './city'
+import { SCENE, STORM_KEYS, city, column, road, storm } from './city'
 import { CITY_KEYS, megacity, walkerKeys } from './megacity'
 import { grid, paths, rect } from './pixels'
 import type { Grid } from './pixels'
@@ -351,13 +351,14 @@ function draw(w: World, now: number, o: { isStill: boolean; isLean?: boolean; is
     `<g style="animation:rip 4.9s steps(2) infinite">${column(lit.beacon)}</g>` +
     `<g class="tw">${megacity(now, lean || o.isLeanSea === true)}${house}</g>` +
     cloudSea(now, { isLean: lean || o.isLeanSea === true, isCalm: o.isCalmSea === true, isStill: o.isStill }) +
+    (lean || o.isCalmSea === true || o.isStill ? '' : storm(now)) +
     // Smoke over the middle, where the words are; over everything on a tall screen.
     `<rect x="170" width="300" height="${SCENE.h}" fill="url(#smoke)"/><rect class="veil" width="${SCENE.w}" height="${SCENE.h}" fill="#05090E" opacity="0"/>`
 
   const still = o.isStill ? '*{animation:none!important}' : ''
   return (
     `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${SCENE.w} ${SCENE.h}" preserveAspectRatio="xMaxYMax slice" shape-rendering="crispEdges" fill="none" stroke-width="1">` +
-    `<style>${o.isStill ? stillCss() : CSS + TOWER_KEYS + CITY_KEYS + walkerKeys()}${pen.css.join('')}${still}</style><defs><clipPath id="rf"><rect x="-10" y="1" width="20" height="9"/></clipPath>` +
+    `<style>${o.isStill ? stillCss() : CSS + TOWER_KEYS + CITY_KEYS + STORM_KEYS + walkerKeys()}${pen.css.join('')}${still}</style><defs><clipPath id="rf"><rect x="-10" y="1" width="20" height="9"/></clipPath>` +
     `<linearGradient id="rf2" x1="1" y1="0" x2="0" y2="1"><stop offset=".45" stop-color="#fff"/><stop offset=".8" stop-color="#fff" stop-opacity="0"/></linearGradient><mask id="rd" maskUnits="userSpaceOnUse" x="-200" y="0" width="460" height="400"><rect x="-200" width="460" height="400" fill="url(#rf2)"/></mask>` +
     `<linearGradient id="smoke"><stop offset="0" stop-color="#05090E" stop-opacity="0"/><stop offset=".22" stop-color="#05090E" stop-opacity=".6"/><stop offset=".74" stop-color="#05090E" stop-opacity=".6"/><stop offset="1" stop-color="#05090E" stop-opacity="0"/></linearGradient>` +
     `${[...pen.defs.values()].join('')}</defs>${all}</svg>`

@@ -555,7 +555,7 @@ describe('the playable room', () => {
     expect(svg.includes('<path id="fL"')).toBe(true)
     // glass offices on the middle and near rings, penthouses with white ceilings and someone walking
     expect(svg.includes('fill="url(#gL)"')).toBe(true)
-    expect(svg.includes('stroke="#F2FBFC"') || svg.includes('stroke="#F2FAFB"')).toBe(true)
+    expect(svg.includes('stroke="#B8F6FF"')).toBe(true)
     expect(svg).toMatch(/animation:pw[mn]\d+ /)
     expect(svg.includes('<g class="cs">')).toBe(true)
     expect(svg).toMatch(/\.cs\{transform:translate\(\d+px,\d+px\) scale\(0\.\d+\)/)

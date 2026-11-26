@@ -7,6 +7,7 @@
 // higher, and the haze of the night air thins it. The faces reuse the tower's own window patterns
 // (tower.ts), so the whole city shares one lattice of windows with the tower.
 
+import { spire } from './city'
 import { GLASS_BACK, glassDefs } from './glass'
 import { ROOM_INK as C, hash } from './room'
 
@@ -219,7 +220,7 @@ function penthouses(t: Tier, isLean: boolean): string {
     walkKeys.push(`@keyframes pw${t.key}${i}{to{transform:translate(${x0 + w - 8}px,${y0 + 8 + (w - 12) / 2}px)}}`)
   })
   return (
-    `<path fill="#3A5966" d="${room}"/><path stroke="#F2FAFB" d="${ceil}"/><path stroke="#BFD6DB" d="${ceil2}"/>` +
+    `<path fill="#0F2C35" d="${room}"/><path stroke="#B8F6FF" d="${ceil}"/><path stroke="#4FE0F2" d="${ceil2}"/>` +
     `<path stroke="#0A1218" d="${slab}"/><path stroke="#2C4752" d="${mull}"/><path fill="#0E1A20" d="${sofa}"/>${walkers}`
   )
 }
@@ -337,7 +338,7 @@ export function megacity(now: number, isLean = false): string {
     // lean, for the busiest drawing: the far ring goes, and the bridges and lamps with it
     const tiers = isLean
       ? '@RAIL@' + drawTier(mid, defs, isLean) + drawTier(near, defs, isLean)
-      : drawTier(far, defs, isLean) + crowns(far) + '@RAIL@' + drawTier(mid, defs, isLean) + penthouses(mid, isLean) + crowns(mid) + masts(mid) + bridges(mid) + drawTier(near, defs, isLean) + penthouses(near, isLean) + crowns(near) + masts(near) + lamps(mid)
+      : drawTier(far, defs, isLean) + crowns(far) + spire(-560, -330, 120) + '@RAIL@' + drawTier(mid, defs, isLean) + penthouses(mid, isLean) + crowns(mid) + masts(mid) + bridges(mid) + drawTier(near, defs, isLean) + penthouses(near, isLean) + crowns(near) + masts(near) + lamps(mid)
     const shared = (isLean ? [mid, near] : [far, mid, near]).map(t => defs.get(`${t.key}L`) + defs.get(`${t.key}R`)).join('')
     // lean, the offices are small windows again: the glass is the dearest pattern in the drawing
     body = `<defs>${isLean ? '' : glassDefs()}${shared}</defs>${tiers}`

@@ -52,6 +52,12 @@ function floorInk(i: number, j: number): string {
     return e < 0.7 || mid > 2.3 ? C.g3 : C.g4
   }
   if (depth > -0.14) return C.f0
+  // Lit markings let into the gloss along the front edge: rounded slots outlined in light, in a row.
+  if (j > 6.4 && j < 6.86 && i > 0.9 && i < 6.1) {
+    const k = i - 0.9 - Math.floor((i - 0.9) / 0.74) * 0.74
+    const rim = Math.min(k - 0.12, 0.62 - k, j - 6.48, 6.78 - j)
+    if (rim > 0 && rim < 0.05) return C.p4
+  }
   // Lit lines let into the gloss: from the shelves round to the core, and out to both doors.
   if (Math.abs(i - 0.62) < 0.035 || Math.abs(j - 6.38) < 0.035 || Math.abs(i - 6.38) < 0.035) return C.teal
   const a = Math.abs((i + 0.02) % 1.75)
@@ -250,10 +256,17 @@ export function decor(g: Grid): void {
   onLeft(g, 7, 19, 30, 22, C.p1)
   onLeft(g, 8, 20, 28, 20, C.slab)
   onLeft(g, 9, 21, 26, 18, '#0B2730')
-  // Neon: three bars and a ring, no words.
-  onLeft(g, 41, 18, 2, 22, C.red)
-  onLeft(g, 41, 18, 2, 1, C.amber)
-  onLeft(g, 41, 39, 2, 1, C.amber)
+  // A light strip that runs up the wall and bends at the top, as the room's other light lines do.
+  for (let v = 2; v < 34; v++) {
+    onLeft(g, 41, v, 2, 1, C.cyan)
+    onLeft(g, 42, v, 1, 1, '#E6FDFF')
+  }
+  for (let k = 0; k < 14; k++) {
+    onLeft(g, 41 + k, 34 + (k >> 1), 2, 1, C.cyan)
+    onLeft(g, 42 + k, 34 + (k >> 1), 1, 1, '#E6FDFF')
+  }
+  onLeft(g, 55, 41, 40, 1, C.cyan)
+  onLeft(g, 55, 40, 40, 1, C.teal)
   // At the far end, a vent, a lamp and a panel of switches.
   onLeft(g, 98, 8, 11, 30, C.slab2)
   for (let v = 10; v < 22; v += 3) onLeft(g, 100, v, 7, 1, C.void)

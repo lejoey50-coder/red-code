@@ -13,7 +13,8 @@ const HZ = 360
 /** The middle of the far column of light. */
 const COLUMN = 178
 
-const SKY = ['#070E15', '#08121A', '#0A1720', '#0C1D27', '#0F2530', '#122D39', '#153642', '#193F4B']
+/** Storm-dark teal, deepening upward. */
+const SKY = ['#03080B', '#050C10', '#071115', '#09161B', '#0B1C22', '#0E232A', '#112A32', '#15323B']
 
 /** Runs of one colour, gathered into one path. */
 class Ink {
@@ -101,3 +102,55 @@ export function road(): Grid {
   }
   return g
 }
+
+// ---- the far spire and the storm
+
+
+/**
+ * A needle of a tower far off over the cloud, on a stepped base that glows from within: dark faces, a
+ * line of light up its spine and down its edges, a lit core at its foot. Drawn among the far blocks, in the
+ * tower's pixels, so it stands over every roof at every window shape.
+ */
+export function spire(x: number, tip: number, base: number): string {
+  const left = `M${x} ${tip}L${x - 7} ${base - 60}L${x - 12} ${base}H${x}z`
+  const right = `M${x} ${tip}L${x + 7} ${base - 60}L${x + 12} ${base}H${x}z`
+  // the base: two stepped wings at the room's slope, each with a light line along its top
+  const wingL = `M${x - 12} ${base - 6}L${x - 70} ${base + 23}V${base + 44}H${x - 12}z`
+  const wingR = `M${x + 12} ${base - 6}L${x + 70} ${base + 23}V${base + 44}H${x + 12}z`
+  const lines = `M${x - 12} ${base - 6.5}L${x - 70} ${base + 22.5}M${x + 12} ${base - 6.5}L${x + 70} ${base + 22.5}M${x - 40} ${base + 12}V${base + 40}M${x + 40} ${base + 12}V${base + 40}`
+  return (
+    // a soft column of haze round it
+    `<rect x="${x - 26}" y="${tip + 40}" width="52" height="${base - tip}" fill="#1C8EA3" opacity=".05"/><rect x="${x - 14}" y="${tip + 20}" width="28" height="${base - tip}" fill="#4FE0F2" opacity=".05"/>` +
+    `<path fill="#04080B" d="${left}${wingL}"/><path fill="#0A151A" d="${right}${wingR}"/>` +
+    `<path stroke="#4FE0F2" stroke-width=".8" d="M${x - 7} ${base - 60}L${x - 12} ${base}M${x + 7} ${base - 60}L${x + 12} ${base}"/>` +
+    `<path stroke="#B8F6FF" stroke-dasharray="6 3" d="M${x + 0.5} ${tip + 4}V${base}"/><path stroke="#1C8EA3" d="${lines}"/>` +
+    // the lit core at its foot, between the wings
+    `<path fill="#4FE0F2" opacity=".55" d="M${x - 8} ${base - 30}h16v34h-16z"/><path stroke="#E6FDFF" d="M${x - 5.5} ${base - 28}v30M${x - 1.5} ${base - 30}v32M${x + 2.5} ${base - 30}v32M${x + 6.5} ${base - 28}v30"/>`
+  )
+}
+
+/**
+ * Rain over the whole city, a pattern of thin streaks that falls by exactly one tile and starts over, and
+ * two lightning bolts in the far sky, each flashing once in a few minutes. Both rest invisible or still
+ * with motion off; the rain is faint enough to read the chat through.
+ */
+export function storm(now: number): string {
+  const drops = `<path stroke="#8FD6E2" d="M3 2.5h1m-1 1h1m0 1h1m-1 1h1M23 30.5h1m-1 1h1m0 1h1m-1 1h1M33 12.5h1m-1 1h1m0 1h1M13 46.5h1m-1 1h1m0 1h1m-1 1h1"/>`
+  const bolt = (x: number, ms: number, k: number) => {
+    let d = `M${x} 0`
+    let px = x
+    for (let y = 8; y < 190; y += 8 + ((k * 7 + y) % 9)) {
+      px += ((y * 13 + k * 31) % 15) - 7
+      d += `L${px} ${y}`
+    }
+    return `<g style="opacity:0;animation:zap ${ms / 1000}s linear ${-(now % ms) / 1000}s infinite"><path stroke="#2B65A3" stroke-width="4" opacity=".5" d="${d}"/><path stroke="#E6F6FF" d="${d}"/></g>`
+  }
+  return (
+    `<defs><pattern id="rn" width="40" height="60" patternUnits="userSpaceOnUse">${drops}</pattern></defs>` +
+    bolt(40, 197000, 1) + bolt(596, 251000, 2) +
+    `<g opacity=".35" style="animation:rain .9s linear infinite"><rect x="-40" y="-60" width="720" height="420" fill="url(#rn)"/></g>`
+  )
+}
+
+/** The rain's fall: one tile down and one across, so it loops with no seam. */
+export const STORM_KEYS = '@keyframes rain{to{transform:translate(-40px,60px)}}'

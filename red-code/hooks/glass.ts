@@ -21,8 +21,8 @@ export const GLASS_BACK = '#0B1720'
 
 const INK = {
   slab: '#070C10', mullion: '#101C23',
-  ceil: '#F2FBFC', ceil2: '#B8DCE3', wall: '#86B1BC', wall2: '#5F8994', floor: '#2E4D57',
-  dimCeil: '#7A9AA3', dimWall: '#24404C',
+  ceil: '#7FEAF6', ceil2: '#1C8EA3', wall: '#103039', wall2: '#0C242C', floor: '#081A20',
+  dimCeil: '#16707F', dimWall: '#0A1C23',
   desk: '#0C171D', screen: '#B8F6FF', screen2: '#4FE0F2', chair: '#14242C',
   leaf: '#3FA673', leaf2: '#26734D', glint: '#2A4B57',
 }
