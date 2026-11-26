@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  <code>v0.5.0</code> · Claude Code desktop app (Windows) · dark mode
+  <code>v0.6.0</code> · Claude Code desktop app (Windows) · dark mode
 </p>
 
 ---

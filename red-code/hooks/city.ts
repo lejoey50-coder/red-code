@@ -8,9 +8,8 @@ import { ROOM_INK as C, hash } from './room'
 export const SCENE = { w: 640, h: 360 } as const
 /** Where the building's own 0,0 lies in the scene: low on the right, clear of the words. */
 export const AT = { x: 392, y: 108 } as const
-const HZ = 240
-/** The elevated line the trains run on. */
-export const LINE = 214
+/** Where the far column of light runs down to, under the cloud. */
+const HZ = 360
 /** The middle of the far column of light. */
 const COLUMN = 178
 
@@ -34,105 +33,32 @@ class Ink {
   }
 }
 
-type Tower = [x: number, w: number, top: number, seam: string]
-const NEAR: Tower[] = [
-  [-6, 34, 60, C.cyan], [38, 26, 104, C.red], [74, 30, 30, C.cyan], [116, 20, 128, C.cyan],
-  [214, 24, 92, C.red], [246, 34, 140, C.cyan], [292, 20, 70, C.cyan], [322, 30, 156, C.red],
-  [362, 22, 98, C.cyan], [396, 26, 52, C.red], [440, 18, 130, C.cyan], [566, 26, 64, C.cyan], [604, 40, 22, C.red],
-]
-
-/** Black towers, stepped at the top, each with one lit seam that bends and a few lit floors. */
-function towers(): string {
-  let bodies = ''
-  let edges = ''
-  const seams = new Map<string, string>()
-  const ink = new Ink()
-  for (const [x, w, top, seam] of NEAR) {
-    const b = HZ + 22
-    bodies += `M${x + 4} ${top}h${w - 8}v3h2v3h2v${HZ - 18 - top - 6}h2v${b - HZ + 18}h${-w - 4}v${HZ - 18 - b}h2v${top + 6 - HZ + 18}h2v-3h2z`
-    edges += `M${x + w - 0.5} ${top + 6}V${HZ - 18}`
-    const a = x + 4
-    const bend = top + 20 + (hash(x, 9) % 22)
-    const run = Math.min(6, w - 9)
-    let d = `M${a + 0.5} ${top + 9}V${bend}`
-    for (let k = 0; k < run; k++) d += `M${a + k} ${bend + k}.5h1`
-    d += `M${a + run + 0.5} ${bend + run}V${HZ + 14}`
-    seams.set(seam, (seams.get(seam) ?? '') + d)
-    for (let y = top + 14; y < HZ - 6; y += 7) {
-      const n = hash(x, y) % 5
-      if (n < 2) ink.run(x + w - 7, y, 3, n === 0 ? '#2A7585' : '#1B4550')
-    }
-  }
-  return (
-    `<path fill="#050A0F" d="${bodies}"/><path stroke="#223A44" d="${edges}"/>` +
-    [...seams].map(([c, d]) => `<path stroke="${c}" stroke-dasharray="8 1" d="${d}"/>`).join('') +
-    ink.flush()
-  )
-}
-
 let drawn = ''
-/** Sky, towers, the line and the water. */
+/**
+ * The night sky over the megacity: bands of dark blue, a few stars and long flat cloud high up, lighter
+ * round the far column. The city itself and the cloud sea under it are drawn at the room's own angle
+ * (megacity.ts, tower.ts); what is left here is what has no angle: the sky.
+ */
 export function city(): string {
   if (drawn !== '') return drawn
   const { w: W, h: H } = SCENE
-  let out = SKY.map((c, k) => `<rect y="${k * 30}" width="${W}" height="30" fill="${c}"/>`).join('')
+  let out = SKY.map((c, k) => `<rect y="${k * 45}" width="${W}" height="${k === SKY.length - 1 ? H - k * 45 : 45}" fill="${c}"/>`).join('')
   const ink = new Ink()
-  // Long flat cloud, a little lighter around the column.
-  for (let y = 12; y < 200; y += 8) {
-    for (let x = hash(y, 3) % 60; x < W; x += 90 + (hash(y, x) % 80)) {
+  for (let y = 12; y < 200; y += 13) {
+    for (let x = hash(y, 3) % 60; x < W; x += 120 + (hash(y, x) % 90)) {
       const n = 20 + (hash(x, y) % 46)
       ink.run(x, y, n, Math.abs(x + n / 2 - COLUMN) < 90 ? '#1B4451' : '#11262F')
     }
   }
-  // Stars, few.
-  for (let k = 0; k < 34; k++) ink.run((hash(k, 21) * 7 + k * 53) % W, (hash(k, 33) * 3 + k * 11) % 96, 1, k % 5 === 0 ? '#7FB7C2' : '#2C4A55')
-  // The red glow low down, broken up as it rises.
-  ink.box(0, HZ - 10, W, 10, '#7C1D30')
-  for (let y = HZ - 42; y < HZ - 10; y += 2) {
-    const c = y > HZ - 20 ? '#541827' : y > HZ - 30 ? '#341722' : '#231B25'
+  for (let k = 0; k < 40; k++) ink.run((hash(k, 21) * 7 + k * 53) % W, (hash(k, 33) * 3 + k * 11) % 130, 1, k % 5 === 0 ? '#7FB7C2' : '#2C4A55')
+  // the city's own light, thrown up into the haze above the cloud sea
+  for (let y = 206; y < 262; y += 4) {
+    const c = y > 246 ? '#2A1A26' : y > 230 ? '#1C1A25' : '#15202B'
     for (let x = hash(y, 2) % 40; x < W; ) {
       const n = 40 + (hash(x, y) % 60)
       ink.box(x, y, n, 2, c)
-      x += n + 14 + ((HZ - y) >> 1)
+      x += n + 10 + ((262 - y) >> 1)
     }
-  }
-  // Far roofs.
-  for (let x = 0; x < W; ) {
-    const w = 8 + (hash(x, 1) % 18)
-    const h = 12 + (hash(x, 2) % 34)
-    ink.box(x, HZ - h, w, h, '#0B161E')
-    if (w > 12) ink.box(x + 3, HZ - h - 5, w - 8, 5, '#0B161E')
-    if (hash(x, 5) % 3 === 0) ink.run(x + (w >> 1), HZ - h + 3, 1, C.red)
-    if (hash(x, 6) % 3 === 0) ink.run(x + 3, HZ - h + 9, 3, '#20505C')
-    x += w + (hash(x, 4) % 6)
-  }
-  out += ink.flush()
-
-  // Black water, and the lights broken up in it.
-  ink.box(0, HZ, W, H - HZ, '#04080C')
-  ink.box(0, HZ, W, 2, '#3A1320')
-  for (let y = HZ + 12; y < H; y += 5) {
-    for (let x = hash(y, 11) % 60; x < W; x += 80 + (hash(x, y) % 70)) ink.run(x, y, 8 + (hash(y, x) % 26), y < HZ + 60 ? '#260E17' : '#0A141C')
-  }
-  out += ink.flush() + towers()
-  // Two neon signs: bars, no words.
-  for (const [x, y, c] of [[84, 62, C.red], [616, 58, C.amber]] as const) {
-    ink.box(x, y, 12, 40, '#0A1118')
-    for (let k = 0; k < 5; k++) ink.box(x + 2, y + 3 + k * 7, 8 - ((k * 3) % 5), 3, k % 2 === 0 ? c : C.teal)
-  }
-  for (let x = 16; x < W; x += 44) ink.box(x, LINE + 3, 3, 24, '#03060A')
-  out += ink.flush()
-  ink.box(0, LINE, W, 1, '#03060A')
-  ink.box(0, LINE + 1, W, 2, '#162730')
-  for (const [x, , , seam] of NEAR) {
-    for (let y = HZ + 25; y < HZ + 92; y += 5) {
-      const n = 2 + (hash(x, y) % 5)
-      if (hash(y, x) % 3 > 0) ink.run(x + 6 - (n >> 1) + (hash(y, 5) % 4), y, n, seam === C.red ? '#4A1521' : '#12414B')
-    }
-  }
-  for (let y = HZ + 24; y < HZ + 100; y += 2) {
-    const n = 3 + (hash(y, 7) % 8)
-    ink.run(COLUMN - (n >> 1) + (hash(y, 3) % 3) - 1, y, n, y < HZ + 46 ? '#1F5C69' : y < HZ + 72 ? '#163F48' : '#0F2A31')
   }
   drawn = out + ink.flush()
   return drawn
@@ -174,9 +100,4 @@ export function road(): Grid {
     }
   }
   return g
-}
-
-/** A flyer, far off: a bright nose and a thinning tail. */
-export function flyer(ink: string): string {
-  return `<path stroke="#24424C" d="M-16 .5h6"/><path stroke="#3F7C8A" d="M-10 .5h6"/><path stroke="${ink}" d="M-4 .5h4"/><path stroke="#FFFFFF" d="M0 .5h1"/>`
 }

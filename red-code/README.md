@@ -1,6 +1,6 @@
 # Red Code
 
-Your interface as a place: a city at night behind the whole window, and on the right a tall tower whose top floor is cut away to show one room you can play in. Below the room the tower runs down past rows of windows and an outside lift into a sea of night cloud that fills the foot of the window, edge to edge: four layers drifting at their own speeds, crests that build and settle, wisps lifting round the tower, neon caught on the cloud tops, and once every few minutes a faint blue flash of far lightning inside the cloud. Red Code, a small crimson program, acts out what the session is really doing. Helpers appear only when real agents are running. It opens no pane. It sets the app's colors, its backdrop and the plates behind messages, for dark mode.
+Your interface as a place: an isometric megacity at night behind the whole window, drawn at the room's own angle and pixel size, and on the right a tall tower whose top floor is cut away to show one room you can play in. Blocks, skybridges and two elevated rail lines with trains run on the room's diagonals, flyers cross above the roofs, and neon flickers on the near faces. Below the room the tower runs down past rows of windows and an outside lift into a sea of night cloud that fills the foot of the window, edge to edge: four layers drifting at their own speeds, crests that build and settle, wisps lifting round the tower, neon caught on the cloud tops, and once every few minutes a faint blue flash of far lightning inside the cloud. Red Code, a small crimson program, acts out what the session is really doing. Helpers appear only when real agents are running. It opens no pane. It sets the app's colors, its backdrop and the plates behind messages, for dark mode.
 
 ## Controls
 
@@ -92,7 +92,9 @@ It reads event types, tool names, and the last part of a file name. It stores it
 
 ## Art
 
-The cloud sea is in `hooks/tower.ts`: each layer is one period of billows in an SVG pattern that slides left by exactly that period, so the loop never shows a reset. With motion off it rests whole, and what only shows while moving (crests, wisps, lightning) stays hidden. When a drawing nears the app's size limit, the crests, wisps, lightning and neon go first, then the far layers, before anyone in the room stops moving.
+The megacity is in `hooks/megacity.ts`, drawn inside the tower's own group so it shares the tower's scale, place and window patterns at every window shape. Three rings of blocks, far to near, are thinned by haze with distance, as an orthographic camera shows depth. The sky above it is in `hooks/city.ts`.
+
+The cloud sea is in `hooks/tower.ts`, in its own group that takes the tower's scale and drops so its top stays at the same height on screen: each layer is one period of billows in an SVG pattern that slides left by exactly that period, so the loop never shows a reset. With motion off it rests whole, and what only shows while moving (crests, wisps, lightning) stays hidden. When a drawing nears the app's size limit, the crests, wisps, lightning and neon go first, then the far cloud layer, then the far ring of the city, before anyone in the room stops moving.
 
 The tower below the room (`hooks/tower.ts`) and the playable room (`hooks/play.ts`) are drawn as shapes and patterns sheared to the room's own two-across-one-up slope, so they meet the pixel art at its angles.
 

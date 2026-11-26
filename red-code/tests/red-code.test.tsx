@@ -544,13 +544,16 @@ describe('the playable room', () => {
     expect(svg.includes('bikeSE')).toBe(true)
   })
 
-  test('the cloud sea runs edge to edge in four drifting layers, and its lightning rests unseen', () => {
+  test('the megacity and its cloud sea stand at the tower’s scale, four layers drifting, lightning resting unseen', () => {
     const svg = drawRoom(fresh(), T0 + 120000, { isStill: false })
     for (const k of [0, 1, 2, 3]) {
       expect(svg.includes(`fill="url(#sk${k})"`)).toBe(true)
       expect(svg.includes(`animation:sk${k} `)).toBe(true)
     }
-    expect(svg.includes('<path fill="#151B23" d="M0 340H640V360H0z"/>')).toBe(true)
+    // the city is drawn inside the tower's group, the sea in its own group placed by the tower's bands
+    expect(svg.includes('<g class="tw"><defs><path id="fL"')).toBe(true)
+    expect(svg.includes('<g class="cs">')).toBe(true)
+    expect(svg).toMatch(/\.cs\{transform:translate\(\d+px,\d+px\) scale\(0\.\d+\)/)
     expect(svg).toMatch(/<g style="opacity:0;animation:zap /)
     const still = drawRoom(fresh(), T0 + 120000, { isStill: true })
     for (const k of [0, 1, 2, 3]) expect(still.includes(`fill="url(#sk${k})"`)).toBe(true)

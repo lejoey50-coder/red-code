@@ -3,7 +3,7 @@
 // Wisps pass behind the room, so a few show through its windows. The tower stands beside the chat: as the
 // window narrows it grows smaller and keeps to the right edge (play.ts's placement, by the window's shape).
 
-import { placementCss } from './play'
+import { BANDS, placement, placementCss } from './play'
 import { grid, paths, set } from './pixels'
 import type { Grid } from './pixels'
 import { ROOM_INK as C, hash } from './room'
@@ -87,75 +87,83 @@ export function wisps(now: number): string {
 
 // ---- the cloud sea
 //
-// The city floats on a sea of cloud that fills the foot of the window, edge to edge, in four layers.
-// Each layer is a strip of billows laid in a pattern one period wide; the strip slides left by exactly
-// one period and starts over, so the loop has no seam. Nearer layers are lower, lighter and faster.
-// Small billows on each layer's crest swell and fade, so the shapes change as they drift. Everything
-// that only shows while moving (billows forming, rising wisps, lightning) rests invisible, so reduced
-// motion and the Still setting leave a calm, whole cloudscape.
+// The megacity floats on a sea of cloud. It is drawn at the room's angle and pixel size: billows are
+// domes flattened two to one, lit from the right as the room is, and the whole sea sits in its own
+// group that takes the tower's scale and place (`.cs`, SEA_CSS), set lower or higher so its top stays at
+// the same height on screen at every window shape. Its x is the tower's x, so the glow under the city's
+// neon and the wisps round the tower line up with them.
+//
+// Four layers, back to front, each one period of billows in a pattern that slides by exactly that
+// period, so the drift loops with no seam. Wind on an orthographic map moves everything alike, so the
+// layers keep close speeds. A second pass of each strip swells and fades, so crests build and settle.
+// What only shows while moving (crests, wisps, lightning) rests invisible: with motion off the sea is
+// calm and whole.
 
-/** Highlights, creases and shade, as see-through inks over the layer's own colour. */
-const PUFF_INK: Record<string, string> = { b: 'currentColor', h: '#7FDDEA59', s: '#02050859' }
+/** Highlight, light, body and shade, as see-through inks over the layer's own colour. */
+const PUFF_INK: Record<string, string> = { h: '#8FE6F240', m: '#6FC8D61C', b: 'currentColor', s: '#02050840' }
 
-/** One billow in pixel art: domes along the top, flat below, lit from above and shaded down and to the right. */
+/** One billow: domes flattened two to one, the nearer drawn over the farther, lit from the upper right. */
 function puff(w: number, h: number, seed: number): Grid {
   const g = grid(w, h)
-  const n = Math.max(2, Math.round(w / 15))
-  const domes: Array<[number, number]> = []
+  const n = Math.max(3, Math.round(w / 22))
+  const domes: Array<[cx: number, cy: number, r: number]> = []
   for (let k = 0; k < n; k++) {
-    const r = Math.max(4, Math.round(h * (0.5 + (hash(seed, k) % 45) / 100)))
-    const edge = k === 0 || k === n - 1
-    domes.push([Math.round(((k + 0.5) * w) / n + (hash(k, seed) % 5) - 2), edge ? Math.round(r * 0.7) : r])
+    const r = Math.round(h * (0.42 + (hash(seed, k) % 30) / 100))
+    domes.push([Math.round(((k + 0.5) * w) / n + (hash(k, seed) % 7) - 3), h - Math.round(r * 0.35) + (hash(seed + 1, k) % 5), k === 0 || k === n - 1 ? Math.round(r * 0.75) : r])
   }
-  for (let x = 0; x < w; x++) {
-    let top = h
-    let owner = -1
-    domes.forEach(([cx, r], k) => {
-      const d = x + 0.5 - cx
-      if (Math.abs(d) >= r) return
-      const t = Math.round(h - Math.sqrt(r * r - d * d))
-      if (t < top) {
-        top = t
-        owner = k
+  // one height map for the billow, so the domes merge into one mass and only its outline and creases show
+  const H = new Float32Array(w * h).fill(-1)
+  for (const [cx, cy, r] of domes)
+    for (let y = 0; y < h; y++)
+      for (let x = 0; x < w; x++) {
+        const dx = (x + 0.5 - cx) / r
+        const dy = (y + 0.5 - cy) / (y + 0.5 < cy ? r * 0.8 : r * 0.42)
+        const q = dx * dx + dy * dy
+        if (q < 1) H[y * w + x] = Math.max(H[y * w + x] ?? -1, Math.sqrt(1 - q) * r)
       }
-    })
-    for (let y = top; y < h; y++) {
-      const depth = y - top
-      const [cx, r] = domes[owner] ?? [0, 1]
-      const side = (x + 0.5 - cx) / r
-      let key = 'b'
-      if (depth === 0 && side < 0.6) key = 'h'
-      else if (y > h - 4) key = 's'
-      else if (side > 0.55 && depth > 1 && depth < 5) key = 's'
-      set(g, x, y, key)
+  const at = (x: number, y: number) => (x < 0 || y < 0 || x >= w || y >= h ? 0 : Math.max(0, H[y * w + x] ?? 0))
+  const L = [0.58, -0.56, 0.59] as const
+  for (let y = 0; y < h; y++)
+    for (let x = 0; x < w; x++) {
+      if ((H[y * w + x] ?? -1) < 0) continue
+      const gx = at(x + 1, y) - at(x - 1, y)
+      const gy = at(x, y + 1) - at(x, y - 1)
+      const n = Math.hypot(gx, gy, 2)
+      const lit = (-gx * L[0] - gy * L[1] + 2 * L[2]) / n
+      const isTop = (H[(y - 1) * w + x] ?? -1) < 0 || y === 0
+      set(g, x, y, isTop && lit > 0.45 ? 'h' : lit > 0.8 ? 'm' : lit < 0.2 ? 's' : 'b')
     }
-  }
   return g
 }
 
-/** The billow sizes, each drawn once and tinted by the layer that uses it. */
-const PUFFS = [[68, 30], [46, 22], [30, 14]] as const
+/** The billow sizes, in the tower's pixels, each drawn once and tinted by the layer that uses it. */
+const PUFFS = [[150, 50], [104, 40], [64, 28]] as const
 
 type Sea = { base: number; period: number; ms: number; ink: string; seed: number }
-/** Far to near: midnight blue at the back, charcoal in front; nearer is lower and faster. */
+/** Back to front, in the sea's own pixels: midnight blue far off, charcoal near. */
 const SEA: Sea[] = [
-  { base: 276, period: 384, ms: 260000, ink: '#0A141B', seed: 11 },
-  { base: 294, period: 320, ms: 190000, ink: '#0D1922', seed: 23 },
-  { base: 314, period: 288, ms: 130000, ink: '#111C26', seed: 37 },
-  { base: 336, period: 256, ms: 90000, ink: '#151B23', seed: 53 },
+  { base: 10, period: 520, ms: 190000, ink: '#0A141B', seed: 11 },
+  { base: 40, period: 455, ms: 175000, ink: '#0D1922', seed: 23 },
+  { base: 74, period: 390, ms: 160000, ink: '#111C26', seed: 37 },
+  { base: 114, period: 325, ms: 145000, ink: '#151B23', seed: 53 },
 ]
+/** The sea's left edge and width in the tower's pixels: past the window's left edge at its smallest scale. */
+const WEST = -1480
+const SPAN = 1760
+/** Below the window's foot at every window shape. */
+const DEEP = 300
 /** How far above its base line a layer's strip reaches, and below it. */
-const RISE = 40
-const STRIP = 48
+const RISE = 54
+const STRIP = 68
 
-/** Billows across one period, kept inside it, so tiles meet with a gap no wider than the gaps between billows. */
+/** Billows across one period, kept inside it, so tiles meet with a gap no wider than the gaps between them. */
 function billows(sea: Sea): string {
   let out = ''
-  for (let x = 0; ; x += 30 + (hash(x, sea.seed) % 22)) {
+  for (let x = 0; ; x += 52 + (hash(x, sea.seed) % 34)) {
     const size = hash(x, sea.seed + 1) % 5 < 2 ? 0 : hash(x, sea.seed + 3) % 3 === 0 ? 2 : 1
     const [w, h] = PUFFS[size] ?? PUFFS[0]
     if (x + w > sea.period) break
-    out += `<use href="#q${size}" x="${x}" y="${RISE - h + 2 + (hash(x, sea.seed + 2) % 6)}"/>`
+    out += `<use href="#q${size}" x="${x}" y="${RISE - h + 3 + (hash(x, sea.seed + 2) % 12)}"/>`
   }
   return out
 }
@@ -172,7 +180,7 @@ function defsOfSea(layers: readonly number[]): string {
   })
   for (const k of layers) {
     const sea = SEA[k]
-    if (sea) out += `<pattern id="sk${k}" width="${sea.period}" height="${STRIP}" patternUnits="userSpaceOnUse" y="${sea.base - RISE}"><g style="color:${sea.ink}">${billows(sea)}</g></pattern>`
+    if (sea) out += `<pattern id="sk${k}" width="${sea.period}" height="${STRIP}" patternUnits="userSpaceOnUse" x="${WEST}" y="${sea.base - RISE}"><g style="color:${sea.ink}">${billows(sea)}</g></pattern>`
   }
   out += '</defs>'
   seaDefs.set(key, out)
@@ -184,36 +192,35 @@ function defsOfSea(layers: readonly number[]): string {
  * few pixels up, swells and fades on its own clock, so crests build and settle as the layer drifts.
  */
 function layer(sea: Sea, k: number, now: number, isCalm: boolean): string {
-  const strip = (more: string) => `<rect y="${sea.base - RISE}" width="${640 + sea.period}" height="${STRIP}" fill="url(#sk${k})"${more}/>`
+  const strip = (more: string) => `<rect x="${WEST}" y="${sea.base - RISE}" width="${SPAN + sea.period}" height="${STRIP}" fill="url(#sk${k})"${more}/>`
   const ms = 23000 + k * 7000
-  const swell = isCalm ? '' : strip(` transform="translate(${sea.period >> 1} -4)" style="opacity:0;animation:swell ${ms / 1000}s ease-in-out ${at(now, ms)} infinite"`)
-  return `<path fill="${sea.ink}" d="M0 ${sea.base + 4}H640V360H0z"/><g style="animation:sk${k} ${sea.ms / 1000}s steps(${sea.period}) ${at(now, sea.ms)} infinite">${swell}${strip('')}</g>`
+  const swell = isCalm ? '' : strip(` transform="translate(${sea.period >> 1} -5)" style="opacity:0;animation:swell ${ms / 1000}s ease-in-out ${at(now, ms)} infinite"`)
+  return `<path fill="${sea.ink}" d="M${WEST} ${sea.base + 4}h${SPAN}V${DEEP}h${-SPAN}z"/><g style="animation:sk${k} ${sea.ms / 1000}s steps(${sea.period}) ${at(now, sea.ms)} infinite">${swell}${strip('')}</g>`
 }
 
 /** Thin cloud lifting off the sea round the tower's lower floors, now and then. */
 function rising(now: number): string {
-  return [[468, 29000], [522, 37000], [574, 41000], [612, 33000]]
-    .map(([x = 0, ms = 1], k) => `<path stroke="#24434F" style="opacity:0;animation:rise ${ms / 1000}s steps(30) ${at(now + k * 7000, ms)} infinite" d="M${x} ${300 - k * 3}.5h14m-11 -2h19m-13 -2h9"/>`)
+  return [[20, 29000], [86, 37000], [150, 41000], [214, 33000]]
+    .map(([x = 0, ms = 1], k) => `<path stroke="#24434F" style="opacity:0;animation:rise ${ms / 1000}s steps(30) ${at(now + k * 7000, ms)} infinite" d="M${x} ${40 + k * 4}.5h18m-14 -3h24m-17 -3h12"/>`)
     .join('')
 }
 
 /** Far lightning inside the cloud: a dim blue bloom and a short fork, once every few minutes. */
 function lightning(now: number): string {
-  return [[96, 268, 211000], [548, 262, 283000]]
+  return [[-1040, 24, 211000], [-380, 18, 283000]]
     .map(
       ([x = 0, y = 0, ms = 1]) =>
-        `<g style="opacity:0;animation:zap ${ms / 1000}s linear ${at(now, ms)} infinite"><path fill="#2B65A3" opacity=".5" d="M${x - 34} ${y - 4}h68v14h-68zM${x - 22} ${y - 9}h44v22h-44z"/>` +
-        `<path stroke="#DDF2FF" d="M${x + 2} ${y - 12}.5h2m-3 1h2m-2 1h2m-3 1h2m1 1h2m-3 1h2m-3 1h2m-6 -2h2m-3 1h2"/></g>`,
+        `<g style="opacity:0;animation:zap ${ms / 1000}s linear ${at(now, ms)} infinite"><path fill="#2B65A3" opacity=".5" d="M${x - 48} ${y - 6}l48 -12l48 12l-48 24zM${x - 26} ${y}l26 -7l26 7l-26 13z"/>` +
+        `<path stroke="#DDF2FF" d="M${x + 2} ${y - 14}.5h2m-3 1h2m-2 1h2m-3 1h2m1 1h2m-3 1h2m-3 1h2m-6 -2h2m-3 1h2"/></g>`,
     )
     .join('')
 }
 
-/** Neon from the city caught on the cloud tops: faint stepped bands under each source. Fixed while the cloud moves. */
+/** The city's neon caught on the cloud tops: flat diamonds of light lying on the sea. Fixed while the cloud moves. */
 const GLOWS: Record<string, { o: number; at: Array<[x: number, w: number]> }> = {
-  '#C0284A': { o: 0.07, at: [[90, 44], [226, 26], [337, 30]] },
-  '#3E93A1': { o: 0.1, at: [[178, 64], [452, 28]] },
-  '#4FE0F2': { o: 0.05, at: [[560, 96]] },
-  '#E0A040': { o: 0.04, at: [[622, 40]] },
+  '#C0284A': { o: 0.08, at: [[-1120, 70], [-640, 60], [-180, 50]] },
+  '#3E93A1': { o: 0.1, at: [[-880, 90], [-400, 70], [128, 120]] },
+  '#E0A040': { o: 0.05, at: [[-1300, 60], [-60, 50]] },
 }
 let glowCached = ''
 function reflections(): string {
@@ -221,16 +228,19 @@ function reflections(): string {
   for (const [ink, { o, at: spots }] of Object.entries(GLOWS)) {
     let d = ''
     for (const [x, w] of spots)
-      for (const [y, f, h] of [[281, 0.6, 4], [285, 1, 7], [292, 0.6, 9]] as const) d += `M${Math.round(x - (w * f) / 2)} ${y}h${Math.round(w * f)}v${h}h${-Math.round(w * f)}z`
+      for (const f of [1, 0.6]) {
+        const r = Math.round(w * f)
+        d += `M${x - r} 16l${r} ${-(r >> 1)}l${r} ${r >> 1}l${-r} ${r >> 1}z`
+      }
     glowCached += `<path fill="${ink}" opacity="${o}" d="${d}"/>`
   }
   return glowCached
 }
 
 /**
- * The sea of cloud under the city, edge to edge, in the scene's own pixels. `isCalm`, for a busy drawing,
- * keeps the three nearer layers drifting and leaves out the farthest and what comes and goes (swelling
- * crests, wisps, lightning, neon). `isLean` keeps the nearest two.
+ * The sea of cloud under the city. `isCalm`, for a busy drawing, keeps the three nearer layers drifting and
+ * leaves out the farthest and what comes and goes; `isLean` keeps the nearest two; `isStill` keeps all four
+ * at rest.
  */
 export function cloudSea(now: number, o: { isLean?: boolean; isCalm?: boolean; isStill?: boolean } = {}): string {
   const calm = o.isCalm === true || o.isLean === true || o.isStill === true
@@ -238,12 +248,27 @@ export function cloudSea(now: number, o: { isLean?: boolean; isCalm?: boolean; i
     const sea = SEA[k]
     return sea ? layer(sea, k, now, calm) : ''
   }
-  if (o.isLean) return defsOfSea([2, 3]) + at(2) + at(3)
-  if (o.isCalm) return defsOfSea([1, 2, 3]) + at(1) + at(2) + at(3)
-  // standing still, all four layers rest; what only shows while moving is left out
-  if (o.isStill) return defsOfSea([0, 1, 2, 3]) + at(0) + at(1) + at(2) + at(3)
-  return defsOfSea([0, 1, 2, 3]) + at(0) + lightning(now) + at(1) + rising(now) + at(2) + reflections() + at(3)
+  let inner: string
+  if (o.isLean) inner = defsOfSea([2, 3]) + at(2) + at(3)
+  else if (o.isCalm) inner = defsOfSea([1, 2, 3]) + at(1) + at(2) + at(3)
+  else if (o.isStill) inner = defsOfSea([0, 1, 2, 3]) + at(0) + at(1) + at(2) + at(3)
+  else inner = defsOfSea([0, 1, 2, 3]) + at(0) + lightning(now) + reflections() + at(1) + rising(now) + at(2) + at(3)
+  return `<g class="cs">${inner}</g>`
 }
+
+/** Where the sea's top meets the screen, in the scene's pixels, where the tower is large enough to leave room. */
+const SEA_TOP = 256
+/** The lowest the sea's top goes in the tower's pixels, so a narrow window shows cloud, not long bare shafts. */
+const SEA_LOW = 320
+/** The sea takes the tower's scale and place, then drops so its top meets SEA_TOP, band by band. */
+export const SEA_CSS = [...BANDS]
+  .reverse()
+  .map(b => {
+    const p = placement(b.min)
+    const rule = `.cs{transform:translate(${p.tx}px,${p.ty}px) scale(${p.s}) translateY(${Math.min(SEA_LOW, Math.round((SEA_TOP - p.ty) / p.s))}px)}`
+    return b.ratio === '' ? rule : `@media (min-aspect-ratio:${b.ratio}){${rule}}`
+  })
+  .join('')
 
 /** Where the tower stands, band by band. */
 export const PLACE_CSS = placementCss()

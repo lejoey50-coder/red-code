@@ -5,14 +5,15 @@
 
 import { VIEW, place, tileAt } from './map'
 import * as building from './building'
-import { LINE, SCENE, city, column, flyer, road } from './city'
+import { SCENE, city, column, road } from './city'
+import { CITY_KEYS, megacity } from './megacity'
 import { grid, paths, rect } from './pixels'
 import type { Grid } from './pixels'
 import * as room from './room'
 import { INK, art, cycle, frames, markOf, parts, words } from './sprites'
 import { lightsOf } from './world'
 import { HOLO_DOWN, hotspots, hoverCss } from './play'
-import { PLACE_CSS, TOWER_KEYS, cloudSea, lift as liftShaft, walls, wisps } from './tower'
+import { PLACE_CSS, SEA_CSS, TOWER_KEYS, cloudSea, lift as liftShaft, walls, wisps } from './tower'
 import type { Actor, Clip, Face, Pose, World } from '../types'
 
 const cache = new Map<string, string>()
@@ -224,10 +225,6 @@ const CSS = `
 @keyframes a4{0%{opacity:1}25%,100%{opacity:0}}
 .f20,.f21{animation:a2 1s step-end infinite}.f40,.f41,.f42,.f43{animation:a4 1s step-end infinite}
 .f21,.f41,.f42,.f43{opacity:0}
-@keyframes east{from{transform:translate(-60px,${LINE - 2}px)}to{transform:translate(650px,${LINE - 2}px)}}
-@keyframes west{from{transform:translate(700px,${LINE - 1}px) scaleX(-1)}to{transform:translate(-10px,${LINE - 1}px) scaleX(-1)}}
-@keyframes fly{from{transform:translateX(-20px)}to{transform:translateX(660px)}}
-@keyframes yif{from{transform:translateX(660px) scaleX(-1)}to{transform:translateX(-20px) scaleX(-1)}}
 @keyframes flow{from{transform:translate(0,0)}to{transform:translate(112px,-56px)}}
 @media (max-aspect-ratio:11/10){.veil{opacity:.62}}
 @keyframes rip{0%,100%{transform:translateX(0)}25%{transform:translateX(2px)}50%{transform:translateX(-1px)}75%{transform:translateX(-3px)}}
@@ -238,14 +235,12 @@ const CSS = `
 @keyframes pd{0%{opacity:1;transform:none}60%{opacity:.5;transform:scaleY(.35)}100%{opacity:0;transform:scaleY(0)}}
 @keyframes pu{0%{opacity:0;transform:scaleY(0)}100%{opacity:1;transform:none}}
 @media (prefers-reduced-motion:reduce){*{animation:none!important}}
-${PLACE_CSS}${hoverCss()}`
+${PLACE_CSS}${SEA_CSS}${hoverCss()}`
 
 /** The top of the roof's mast. */
 const ROOF_LAMP = -10
 /** Where the beacon's beam goes up. */
 const BEAM = place([1, 0])[0]
-const EAST = 74000
-const WEST = 112000
 
 /** The style for a drawing that does not move: every keyframe left out, as nothing plays them. */
 let stillCached = ''
@@ -348,15 +343,10 @@ function draw(w: World, now: number, o: { isStill: boolean; isLean?: boolean; is
     (lean ? '' : `<g style="transform:translate(96px,64px);animation:hover 24s steps(96) ${s(-(now % 24000))} infinite">${once('drone', building.drone)}</g>`) +
     sign +
     (lean ? '' : hotspots())
-  const flight = (y: number, ms: number, way: 'fly' | 'yif', x: number, ink: string) =>
-    `<g transform="translate(0 ${y})"><g style="transform:translateX(${x}px)${way === 'yif' ? ' scaleX(-1)' : ''};animation:${way} ${s(ms)} steps(340) ${s(-(now % ms))} infinite">${flyer(ink)}</g></g>`
   const all =
     city() +
     `<g style="animation:rip 4.9s steps(2) infinite">${column(lit.beacon)}</g>` +
-    (lean ? '' : flight(46, 64000, 'fly', 130, room.ROOM_INK.cyan) + flight(84, 91000, 'yif', 250, room.ROOM_INK.red) + flight(118, 120000, 'fly', 60, room.ROOM_INK.ice)) +
-    (lean ? '' : `<g style="transform:translate(150px,${LINE - 2}px);animation:east ${s(EAST)} steps(355) ${s(-(now % EAST))} infinite">${once('trainEast', () => building.train(room.ROOM_INK.cyan))}</g>` +
-    `<g style="transform:translate(340px,${LINE - 1}px) scaleX(-1);animation:west ${s(WEST)} steps(355) ${s(-(now % WEST))} infinite">${once('trainWest', () => building.train(room.ROOM_INK.red))}</g>`) +
-    `<g class="tw">${house}</g>` +
+    `<g class="tw">${megacity(now, lean || o.isLeanSea === true)}${house}</g>` +
     cloudSea(now, { isLean: lean || o.isLeanSea === true, isCalm: o.isCalmSea === true, isStill: o.isStill }) +
     // Smoke over the middle, where the words are; over everything on a tall screen.
     `<rect x="170" width="300" height="${SCENE.h}" fill="url(#smoke)"/><rect class="veil" width="${SCENE.w}" height="${SCENE.h}" fill="#05090E" opacity="0"/>`
@@ -364,7 +354,7 @@ function draw(w: World, now: number, o: { isStill: boolean; isLean?: boolean; is
   const still = o.isStill ? '*{animation:none!important}' : ''
   return (
     `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${SCENE.w} ${SCENE.h}" preserveAspectRatio="xMaxYMax slice" shape-rendering="crispEdges" fill="none" stroke-width="1">` +
-    `<style>${o.isStill ? stillCss() : CSS + TOWER_KEYS}${pen.css.join('')}${still}</style><defs><clipPath id="rf"><rect x="-10" y="1" width="20" height="9"/></clipPath>` +
+    `<style>${o.isStill ? stillCss() : CSS + TOWER_KEYS + CITY_KEYS}${pen.css.join('')}${still}</style><defs><clipPath id="rf"><rect x="-10" y="1" width="20" height="9"/></clipPath>` +
     `<linearGradient id="rf2" x1="1" y1="0" x2="0" y2="1"><stop offset=".45" stop-color="#fff"/><stop offset=".8" stop-color="#fff" stop-opacity="0"/></linearGradient><mask id="rd" maskUnits="userSpaceOnUse" x="-200" y="0" width="460" height="400"><rect x="-200" width="460" height="400" fill="url(#rf2)"/></mask>` +
     `<linearGradient id="smoke"><stop offset="0" stop-color="#05090E" stop-opacity="0"/><stop offset=".22" stop-color="#05090E" stop-opacity=".6"/><stop offset=".74" stop-color="#05090E" stop-opacity=".6"/><stop offset="1" stop-color="#05090E" stop-opacity="0"/></linearGradient>` +
     `${[...pen.defs.values()].join('')}</defs>${all}</svg>`
