@@ -11,7 +11,7 @@
 </p>
 
 <p align="center">
-  <code>v0.8.0</code> · Claude Code desktop app (Windows) · dark mode
+  <code>v0.9.0</code> · Claude Code desktop app (Windows) · dark mode
 </p>
 
 ---
