@@ -128,12 +128,10 @@ export function spire(x: number, tip: number, base: number): string {
 }
 
 /**
- * Rain over the whole city, a pattern of thin streaks that falls by exactly one tile and starts over, and
- * two lightning bolts in the far sky, each flashing once in a few minutes. Both rest invisible or still
- * with motion off; the rain is faint enough to read the chat through.
+ * Two lightning bolts in the far sky, each flashing once in a few minutes. They rest invisible with
+ * motion off.
  */
 export function storm(now: number): string {
-  const drops = `<path stroke="#8FD6E2" d="M3 2.5h1m-1 1h1m0 1h1m-1 1h1M23 30.5h1m-1 1h1m0 1h1m-1 1h1M33 12.5h1m-1 1h1m0 1h1M13 46.5h1m-1 1h1m0 1h1m-1 1h1"/>`
   const bolt = (x: number, ms: number, k: number) => {
     let d = `M${x} 0`
     let px = x
@@ -143,12 +141,5 @@ export function storm(now: number): string {
     }
     return `<g style="opacity:0;animation:zap ${ms / 1000}s linear ${-(now % ms) / 1000}s infinite"><path stroke="#2B65A3" stroke-width="4" opacity=".5" d="${d}"/><path stroke="#E6F6FF" d="${d}"/></g>`
   }
-  return (
-    `<defs><pattern id="rn" width="40" height="60" patternUnits="userSpaceOnUse">${drops}</pattern></defs>` +
-    bolt(40, 197000, 1) + bolt(596, 251000, 2) +
-    `<g opacity=".35" style="animation:rain .9s linear infinite"><rect x="-40" y="-60" width="720" height="420" fill="url(#rn)"/></g>`
-  )
+  return bolt(40, 197000, 1) + bolt(596, 251000, 2)
 }
-
-/** The rain's fall: one tile down and one across, so it loops with no seam. */
-export const STORM_KEYS = '@keyframes rain{to{transform:translate(-40px,60px)}}'

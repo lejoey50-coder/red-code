@@ -5,7 +5,7 @@
 
 import { VIEW, place, tileAt } from './map'
 import * as building from './building'
-import { SCENE, STORM_KEYS, city, column, road, storm } from './city'
+import { SCENE, city, column, road, storm } from './city'
 import { CITY_KEYS, megacity, walkerKeys } from './megacity'
 import { grid, paths, rect } from './pixels'
 import type { Grid } from './pixels'
@@ -256,7 +256,7 @@ const MOST = 130000
 export function drawRoom(w: World, now: number, o: { isStill: boolean }): string {
   const full = draw(w, now, o)
   if (full.length <= MOST) return full
-  // A busy moment: the fog keeps drifting but drops what comes and goes (the city's currents, lightning, rain),
+  // A busy moment: the fog keeps drifting but drops what comes and goes (the city's currents, lightning),
   // and the city its passing traffic and walkers. Every building stays as it is, so nothing seems to change.
   const quiet = draw(w, now, { ...o, isCalmSea: true })
   if (quiet.length <= MOST) return quiet
@@ -360,7 +360,7 @@ function draw(w: World, now: number, o: { isStill: boolean; isLean?: boolean; is
   const still = o.isStill ? '*{animation:none!important}' : ''
   return (
     `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${SCENE.w} ${SCENE.h}" preserveAspectRatio="xMaxYMax slice" shape-rendering="crispEdges" fill="none" stroke-width="1">` +
-    `<style>${o.isStill ? stillCss() : CSS + TOWER_KEYS + CITY_KEYS + FOG_KEYS + STORM_KEYS + walkerKeys()}${pen.css.join('')}${still}</style><defs><clipPath id="rf"><rect x="-10" y="1" width="20" height="9"/></clipPath>` +
+    `<style>${o.isStill ? stillCss() : CSS + TOWER_KEYS + CITY_KEYS + FOG_KEYS + walkerKeys()}${pen.css.join('')}${still}</style><defs><clipPath id="rf"><rect x="-10" y="1" width="20" height="9"/></clipPath>` +
     `<linearGradient id="rf2" x1="1" y1="0" x2="0" y2="1"><stop offset=".45" stop-color="#fff"/><stop offset=".8" stop-color="#fff" stop-opacity="0"/></linearGradient><mask id="rd" maskUnits="userSpaceOnUse" x="-200" y="0" width="460" height="400"><rect x="-200" width="460" height="400" fill="url(#rf2)"/></mask>` +
     `<linearGradient id="smoke"><stop offset="0" stop-color="#05090E" stop-opacity="0"/><stop offset=".22" stop-color="#05090E" stop-opacity=".6"/><stop offset=".74" stop-color="#05090E" stop-opacity=".6"/><stop offset="1" stop-color="#05090E" stop-opacity="0"/></linearGradient>` +
     `${fogDefs(lean || o.isLeanSea === true ? 0 : o.isCalmSea === true ? 1 : 4)}${[...pen.defs.values()].join('')}</defs>${all}</svg>`
